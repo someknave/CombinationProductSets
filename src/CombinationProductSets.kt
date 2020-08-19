@@ -2,8 +2,8 @@ package org.myprojects.hexany
 
 import kotlin.math.pow
 
-data class CPSXany(val cpsName: CPSName, val key: Int = nameToKey(cpsName.generators, cpsName.deg),
-                   val notes: List<Fraction> = cps(cpsName),
+data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
+                   val notes:Scale = cpsName.cps(),
                    val origin: Fraction = Fraction(1),
                    val product: Fraction = Fraction(cpsName.generators.reduce{ acc, i -> acc * i })) {
     override fun toString(): String {
@@ -12,12 +12,79 @@ data class CPSXany(val cpsName: CPSName, val key: Int = nameToKey(cpsName.genera
 
 }
 
-class CPSName(val generators: List<Int>, val deg: Int = 2, val order:Int = generators.size,
-              greek:String = greekName(nCk(order, deg))?: "WTFany"){
+
+open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = generators.size){
     override fun toString(): String {
-        return "$generators($deg|$order):${greek}"
+        return "$generators($deg|$order)"
+    }
+    fun nameToKey():Int {
+        var key = deg.shl(24)
+        for (i in generators) {
+            val pow = factors.indexOf(i)
+            if(pow == -1) {throw IllegalArgumentException("Invalid name passed to nameToKey")}
+            key+= 1.shl(pow)
+        }
+        return key
+    }
+    fun cps(inverse: Boolean = false, degree: Int = deg): Scale{
+        val notes = cpsInner(generators, degree, 0, inverse= inverse)
+        return Scale(notes.sortedBy { it.numerator.toFloat() / it.denominator })
     }
 }
+class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
+              val greek: String = greekName(nCk(deg, order))?:"WTFany") :
+        Name(generators, deg, generators.size){
+    override fun toString(): String{
+        return "$generators($deg|$order):$greek"
+    }
+
+}
+
+class Scale(val notes: List<Fraction>) {
+    val intervals: List<List<Fraction>> by lazy {intervalsBySteps(notes)}
+    fun isConstantStructure(): Boolean {
+        val size = this.notes.size
+        for (i in 0 until (size - 1)) {
+            for (j in (i + 1) until size) {
+                if (this.intervals[i].intersect(this.intervals[j]).isNotEmpty()) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+    fun isProper(): Boolean {
+        val size = intervals.size - 1
+        for (i in 0 until size) {
+            if (intervals[i].last() > intervals[i + 1][0]) {
+                return false
+            }
+        }
+        return true
+    }
+    fun nDegreeIntervals(n: Int): List<Fraction> {
+        val size = notes.size
+        return notes
+                .mapIndexed{index, frac ->  frac.invertFraction() * notes[(n + index) % size]}
+                .sortedBy { it.numerator.toFloat() / it.denominator }.distinct()
+    }
+    fun intervalsBySteps(notes: List<Fraction>): List<List<Fraction>>{
+        val size = notes.size
+        val range = (1..(size/2))
+        return range.map { this.nDegreeIntervals(it)}
+    }
+    fun listProduct(other: Scale): Scale{
+        if (notes.isEmpty() or other.notes.isEmpty()){return Scale(emptyList())}
+        val product = mutableListOf<Fraction>()
+        for (a in notes){
+            product.addAll(other.notes.map { a * it})
+        }
+        return Scale(product.sortedBy { it.numerator.toFloat()/it.denominator }.distinct())
+    }
+
+}
+
+
 
 class Fraction(val numerator:Int = 1, var denominator:Int = 1) {
     init {
@@ -79,26 +146,24 @@ class CPSPair(val mediant: CPSXany, val flank: CPSXany) {
     }
 }
 
-class Modulation(val name:CPSPair, val notes: List<Fraction>) {
+class Modulation(val name:CPSPair, val notes: Scale) {
     override fun toString(): String {
-        return "$name: $notes"
+        return "$name: ${notes.notes}"
     }
 }
 
 
-class Mandala(val core: CPSXany, val stellations: List<Fraction>) {
+class Mandala(val core: CPSXany, val stellations: Scale) {
     override fun toString(): String {
-        return "${core.cpsName}: $stellations"
+        return "${core.cpsName}: ${stellations.notes}"
     }
 }
 
-class Diamond(val generators: List<Int>,
-              val deg: Int = 1,
-              val key: Int = nameToKey(generators, deg),
-              val notes: List<Fraction> = listProduct(
-                                cpsInner(generators, deg, 0, inverse= false),
-                                cpsInner(generators, deg, 0, inverse=  true))
-                      .sortedBy { it.numerator.toFloat() / it.denominator}.distinct()
-)
+class Diamond(val name: Name, val key: Int = name.nameToKey(),
+              val notes: Scale = name.cps(inverse= false)
+                      .listProduct(name.cps(inverse=  true))){
+
+}
+
 
 

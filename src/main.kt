@@ -11,11 +11,7 @@ fun main() {
 
 }
 
-fun intervalsBySteps (notes: List<Fraction>): List<List<Fraction>>{
-    val size = notes.size
-    val range = (1..(size/2))
-    return range.map { nDegreeIntervals(notes, it)}
-}
+
 /*
 fun multiModulateHexany(pair: HexanyPair): MultiModulation{
     val medkey = pair.mediant.key
@@ -39,26 +35,15 @@ fun modulateCPS(pair: CPSPair): Modulation {
     val medDeg = mediantCode.shr(24)
     val flankDeg = flankCode.shr(24)
     val intersect = (mediantCode and flankCode) % 1.shr(24)
-    val medFreedom = makeCPSName(mediantCode - intersect).generators
-    val flankFreedom = makeCPSName(flankCode-intersect).generators
+    val medFreedom = makeCPSName(mediantCode - intersect)
+    val flankFreedom = makeCPSName(flankCode - intersect)
     val modulations = mutableListOf<Fraction>()
     for (i in 0..countBits(intersect)){
-        modulations.addAll(listProduct(
-                cpsInner(medFreedom, medDeg - i, 0 ),
-                cpsInner(flankFreedom, flankDeg - i, 0, inverse = true)))
+        modulations.addAll(medFreedom.cps(degree = medDeg - i)
+                .listProduct(flankFreedom.cps( true, flankDeg - i)).notes)
     }
-    return Modulation(pair, listProduct(pair.flank.notes, modulations).distinct())
+    return Modulation(pair, pair.flank.notes.listProduct(Scale(modulations)))
 }
-
-fun listProduct(listA: List<Fraction>, listB: List<Any>): List<Fraction>{
-    if (listA.isEmpty() or listB.isEmpty()){return emptyList()}
-    val product = mutableListOf<Fraction>()
-    for (a in listA){
-        product.addAll(listB.map { a * it})
-    }
-    return product.sortedBy { it.numerator.toFloat()/it.denominator }
-}
-
 
 fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     val cpsPairs = mutableListOf<CPSPair> ()
@@ -73,10 +58,10 @@ fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     return cpsPairs
 }
 
-fun makeCPS(hexKey:Int, order: Int = 2): CPSXany {
-    val name = makeCPSName(hexKey)
-    val notes = cps(name)
-    return CPSXany(name, hexKey, notes)
+fun makeCPS(key:Int, order: Int = 2): CPSXany {
+    val name = makeCPSName(key)
+    val notes = name.cps()
+    return CPSXany(name, key, notes)
 }
 
 fun makeCPSName(key:Int, order:Int = 14): CPSName{
@@ -95,14 +80,6 @@ fun generateKeys(factors:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
     return keys.filter { countBits(it) == order }
 }
 
-fun nDegreeIntervals(notes: List<Fraction>, n: Int): List<Fraction> {
-    val size = notes.size
-    return notes
-            .mapIndexed{index, frac ->  frac.invertFraction() * notes[(n + index) % size]}
-            .sortedBy { it.numerator.toFloat() / it.denominator }
-            .toSet().toList()
-}
-
 fun countBits(a: Int): Int{
     var n = a % 1.shr(24)
     var count = 0
@@ -113,8 +90,6 @@ fun countBits(a: Int): Int{
     return count
 }
 
-
-
 fun Int.nthBit(shift: Int): Int {
     return this.shr(shift).and(1)
 }
@@ -123,10 +98,7 @@ fun binaryPower(num: Int): Int {
     return log2(num.toFloat()).toInt()
 }
 
-fun cps(name: CPSName, inverse: Boolean = false): List<Fraction>{
-    val notes = cpsInner(name.generators, name.deg, 0, inverse= inverse)
-    return notes.sortedBy { it.numerator.toFloat() / it.denominator }.toSet().toList()
-}
+
 
 fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
     if ((deg < 0) or (deg + start >= size)) {return emptyList()}
@@ -171,29 +143,7 @@ fun gcd(a:Int, b:Int): Int {
 
 val primes = setOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
 
-fun isConstantStructure (scale: List<List<Fraction>>): Boolean{
-    val size = scale.size
-    val intersects = mutableListOf<Set<Fraction>>()
-    for (i in 0 until (size - 1)) {
-        for (j in (i+1) until size) {
-            val set = scale[i].intersect(scale[j])
-            if (set.isNotEmpty()) {
-                intersects.add(set)
-            }
-        }
-    }
-    return intersects.isEmpty()
-}
 
-fun isProper (scale: List<List<Fraction>>): Boolean{
-    val size = scale.size - 1
-    for (i in 0 until size) {
-        if (scale[i].last() > scale[i + 1][0]) {
-            return false
-        }
-    }
-    return true
-}
 
 fun primeDivisors(num: Int): Int{
     var d = 1
@@ -211,22 +161,14 @@ fun Int.powerOf2():Int {
 fun Float.powerOf2():Int {
     return 2.0.pow(log2(this).toInt()).toInt()
 }
-fun nameToKey(name: List<Int>, deg: Int=2):Int {
-    var key = deg.shl(24)
-    for (i in name) {
-        val pow = factors.indexOf(i)
-        if(pow == -1) {throw IllegalArgumentException("Invalid name passed to nameToKey")}
-        key+= 1.shl(pow)
-    }
-    return key
-}
+
 
 fun stellateHexany(hex: CPSXany): Mandala{
-    if(hex.cpsName.order != 4) {return Mandala(hex, emptyList())}
+    if(hex.cpsName.order != 4) {return Mandala(hex, Scale(emptyList()))}
     val posPoints = hex.cpsName.generators.map { it-> Fraction(it*it) }
     val negPoints = posPoints.map { it-> hex.product/it }
-    val allPoints = posPoints.union(negPoints).union(hex.notes).sortedBy { it.numerator.toFloat() / it.denominator }
-    return Mandala(hex, allPoints)
+    val allPoints = posPoints.union(negPoints).union(hex.notes.notes).sortedBy { it.numerator.toFloat() / it.denominator }
+    return Mandala(hex, Scale(allPoints))
 }
 /*
 fun stellateDekany(dek: CPSXany): Mandala{
