@@ -1,11 +1,8 @@
 package org.myprojects.hexany
 
 import java.math.BigInteger
-import kotlin.math.log2
-import kotlin.math.pow
-//import
 
-val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)
+//import
 
 fun main() {
 
@@ -38,7 +35,7 @@ fun modulateCPS(pair: CPSPair): Modulation {
     val medFreedom = makeCPSName(mediantCode - intersect)
     val flankFreedom = makeCPSName(flankCode - intersect)
     val modulations = mutableListOf<Fraction>()
-    for (i in 0..countBits(intersect)){
+    for (i in 0..intersect.countBits()){
         modulations.addAll(medFreedom.cps(degree = medDeg - i)
                 .listProduct(flankFreedom.cps( true, flankDeg - i)).notes)
     }
@@ -76,12 +73,12 @@ fun makeCPSName(key:Int, order:Int = 14): CPSName{
 }
 
 fun generateKeys(factors:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
-    val keys = (0..(2.0.pow(factors) - 1).toInt() + deg.shl(24)).toList()
-    return keys.filter { countBits(it) == order }
+    val keys = (0..(1.shl(factors) - 1) + deg.shl(24)).toList()
+    return keys.filter { it.countBits() == order }
 }
 
-fun countBits(a: Int): Int{
-    var n = a % 1.shr(24)
+fun Int.countBits(): Int{
+    var n = this and 16777215
     var count = 0
     while ( n > 0) {
         n = n and (n - 1)
@@ -93,12 +90,6 @@ fun countBits(a: Int): Int{
 fun Int.nthBit(shift: Int): Int {
     return this.shr(shift).and(1)
 }
-
-fun binaryPower(num: Int): Int {
-    return log2(num.toFloat()).toInt()
-}
-
-
 
 fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
     if ((deg < 0) or (deg + start >= size)) {return emptyList()}
@@ -130,8 +121,8 @@ fun nCk(n: Int, k: Int):Int {
     return (nPk(n, k) / nPk(k, 0)).toInt()// returns nPk divided by k  factorial converted to integer
 }
 
-fun gcd(a:Int, b:Int): Int {
-    var i = a
+fun Int.gcd(b:Int): Int {
+    var i = this
     var j = b
     while (j > 0) {
         val m = i.coerceAtMost(j) //min of i and j
@@ -155,26 +146,18 @@ fun primeDivisors(num: Int): Int{
     return d
 }
 
-fun Int.powerOf2():Int {
-    return 2.0.pow(log2(this.toFloat()).toInt()).toInt()
-}
-fun Float.powerOf2():Int {
-    return 2.0.pow(log2(this).toInt()).toInt()
-}
-
-
-fun stellateHexany(hex: CPSXany): Mandala{
-    if(hex.cpsName.order != 4) {return Mandala(hex, Scale(emptyList()))}
-    val posPoints = hex.cpsName.generators.map { it-> Fraction(it*it) }
-    val negPoints = posPoints.map { it-> hex.product/it }
-    val allPoints = posPoints.union(negPoints).union(hex.notes.notes).sortedBy { it.numerator.toFloat() / it.denominator }
-    return Mandala(hex, Scale(allPoints))
+fun stellateCPS(core: CPSXany): Mandala{
+    val posPoints = core.cpsName.generators.map { it-> Fraction(it*it) }
+    val negPoints = posPoints.map { it-> core.product/it }
+    val allPoints = posPoints.union(negPoints).union(core.notes.notes).sortedBy { it.num.toFloat() / it.div}
+    return Mandala(core, Scale(allPoints))
 }
 /*
 fun stellateDekany(dek: CPSXany): Mandala{
 
 }
 */
+val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
         13 to "Triskaideka", 14 to "Tetradeka", 15 to "Pendeka", 16 to "Hekkaideka", 17 to "Heptadeka",
@@ -200,4 +183,11 @@ fun greekName(n: Int): String? {
     name = name + greek[if(remainder<30) -20 else remainder-units]
     if (units > 1) return name + greek[- units] + "ny"
     return name + "ny"
+}
+fun Int.leading1():Int{
+    var mask = this
+    for (i in listOf(1, 2, 4, 8, 16)){
+        mask = mask or mask.shr(i)
+    }
+    return this and (mask.shr(1).inv())
 }

@@ -28,7 +28,7 @@ open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = gen
     }
     fun cps(inverse: Boolean = false, degree: Int = deg): Scale{
         val notes = cpsInner(generators, degree, 0, inverse= inverse)
-        return Scale(notes.sortedBy { it.numerator.toFloat() / it.denominator })
+        return Scale(notes.sortedBy { it.num.toFloat() / it.div })
     }
 }
 class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
@@ -66,7 +66,7 @@ class Scale(val notes: List<Fraction>) {
         val size = notes.size
         return notes
                 .mapIndexed{index, frac ->  frac.invertFraction() * notes[(n + index) % size]}
-                .sortedBy { it.numerator.toFloat() / it.denominator }.distinct()
+                .sortedBy { it.num.toFloat() / it.div }.distinct()
     }
     fun intervalsBySteps(notes: List<Fraction>): List<List<Fraction>>{
         val size = notes.size
@@ -79,39 +79,44 @@ class Scale(val notes: List<Fraction>) {
         for (a in notes){
             product.addAll(other.notes.map { a * it})
         }
-        return Scale(product.sortedBy { it.numerator.toFloat()/it.denominator }.distinct())
+        return Scale(product.sortedBy { it.num.toFloat()/it.div }.distinct())
     }
 
 }
 
 
 
-class Fraction(val numerator:Int = 1, var denominator:Int = 1) {
+class Fraction(var num:Int = 1, var div:Int = 1) {
     init {
-        val order = (numerator.toFloat()/denominator).powerOf2()
-        denominator *= order
+        if (num == 0) {div =0
+        } else if (div == 0) {num = 0
+        } else {
+            if (num>=div) {
+                div *= (num/div).leading1()
+            } else {
+                num *= (div/num).leading1().shl(1)
+            }
+            val gcd = num.gcd(div)
+            num /= gcd
+            div /= gcd
+        }
     }
     override fun toString(): String {
-        return "$numerator/$denominator"
+        return "$num/$div"
     }
     override fun hashCode(): Int {
-        return (numerator*denominator).toFloat().pow(2).toInt() / primeDivisors(denominator)
+        return (num*div).toFloat().pow(2).toInt() / primeDivisors(div)
     }
     override fun equals(other: Any?): Boolean {
         if (other !is Fraction) {return false}
-        return (numerator == other.numerator) and (denominator == other.denominator)
+        return (num == other.num) and (div == other.div)
     }
     operator fun times(other: Any?): Fraction {
         if (other is Int) {
-            return times(Fraction(numerator = other))
+            return times(Fraction(num = other))
         }
         if (other is Fraction) {
-            val num = numerator * other.numerator
-            val den = denominator * other.denominator
-            val d = gcd(num, den)
-            val ord = (num.toFloat()/den).powerOf2()
-            if ((num/d) % 2 == 0) { return Fraction(num/d/ord, den/d)}
-            return Fraction(num/d, den*ord/d)
+            return Fraction(num * other.num, div * other.div)
         }
         return Fraction(0, 0)
     }
@@ -125,17 +130,16 @@ class Fraction(val numerator:Int = 1, var denominator:Int = 1) {
         return Fraction(0, 0)
     }
     fun invertFraction(): Fraction{
-        if (numerator % 2 == 0) {return Fraction( denominator , numerator/2)}
-        return Fraction(denominator * 2, numerator)
+        return Fraction(div , num)
     }
     operator fun compareTo(other: Any?): Int {
         if (other is Fraction) {
-            val fra1 = (numerator.toFloat()/denominator)
-            val fra2 = (other.numerator.toFloat()/other.denominator)
+            val fra1 = (num.toFloat()/div)
+            val fra2 = (other.num.toFloat()/other.div)
             return  fra1.compareTo(fra2)
         }
         if (other is Int) {return compareTo(Fraction(other))}
-        if (other is Float) {(numerator.toFloat()/denominator).compareTo(other)}
+        if (other is Float) {(num.toFloat()/div).compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
 }
