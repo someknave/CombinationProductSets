@@ -196,3 +196,18 @@ fun Int.exp(other:Int):Int{
     }
     return acc
 }
+
+fun Int.fraction(other:Int = 1):Fraction{
+    if ((this == 0) or (other == 0)) {return Fraction(0, 0)}
+    var num = this
+    var div = other
+    if (num>=div) {
+        div *= (num / div).leading1()
+    } else {
+        num *= (div/num).leading1().shl(1)
+    }
+    val gcd = num.gcd(div)
+    num /= gcd
+    div /= gcd
+    return Fraction(num, div)
+}

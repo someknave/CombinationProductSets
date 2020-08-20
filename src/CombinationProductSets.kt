@@ -10,7 +10,11 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
         return "{$cpsName, $notes |O:$origin, P:$product}\n"
     }
     fun stellation(full: Boolean = false): Mandala {
-        if (full) {return Mandala(this, Scale(emptyList()))}
+        if (full) {
+            val genScale = Scale(cpsName.generators.map{Fraction(it)})
+            val posScale = genScale.selfProduct(cpsName.deg)
+            val negScale = genScale.inversion().selfProduct(cpsName.order - cpsName.deg).modulate(product)
+            return Mandala(this, Scale(emptyList()), true)}
         val posPoints = cpsName.generators.map { Fraction(it.exp(cpsName.deg)) }
         val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
         return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
@@ -78,6 +82,15 @@ class Scale(val notes: List<Fraction>) {
         val range = (1..(size/2))
         return range.map { this.nDegreeIntervals(it)}
     }
+    fun inversion(): Scale{ return Scale(notes.map { it.invertFraction() })}
+    fun selfProduct(n:Int):Scale {
+        if (n <0) {return Scale(emptyList())}
+        var scaleAcc = Scale(listOf(Fraction(1)))
+        for (i in 0 until n) {
+            scaleAcc = scaleAcc.listProduct(this)
+        }
+        return scaleAcc
+    }
     fun listProduct(other: Scale): Scale{
         if (notes.isEmpty() or other.notes.isEmpty()){return Scale(emptyList())}
         val product = mutableListOf<Fraction>()
@@ -86,26 +99,18 @@ class Scale(val notes: List<Fraction>) {
         }
         return Scale(product.sortedBy { it.num.toFloat()/it.div }.distinct())
     }
+    fun addition(other: Scale): Scale{
+        return Scale(notes.union(other.notes).toList())
+    }
+    fun modulate(interval: Fraction = Fraction(1)):Scale {
+        return Scale(notes.map{it * interval})
+    }
 
 }
 
 
 
 class Fraction(var num:Int = 1, var div:Int = 1) {
-    init {
-        if (num == 0) {div =0
-        } else if (div == 0) {num = 0
-        } else {
-            if (num>=div) {
-                div *= (num/div).leading1()
-            } else {
-                num *= (div/num).leading1().shl(1)
-            }
-            val gcd = num.gcd(div)
-            num /= gcd
-            div /= gcd
-        }
-    }
     override fun toString(): String {
         return "$num/$div"
     }
@@ -118,24 +123,24 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
     }
     operator fun times(other: Any?): Fraction {
         if (other is Int) {
-            return times(Fraction(num = other))
+            return (other * num).fraction(div)
         }
         if (other is Fraction) {
-            return Fraction(num * other.num, div * other.div)
+            return (num * other.num).fraction( div * other.div)
         }
         return Fraction(0, 0)
     }
     operator fun div(other: Any?): Fraction{
         if (other is Int) {
-            return times(Fraction(other).invertFraction())
+            return num.fraction(other*div)
         }
         if (other is Fraction) {
-            return times(other.invertFraction())
+            return (num *other.div).fraction(div*other.num)
         }
         return Fraction(0, 0)
     }
     fun invertFraction(): Fraction{
-        return Fraction(div , num)
+        return div.fraction(num)
     }
     operator fun compareTo(other: Any?): Int {
         if (other is Fraction) {
@@ -143,7 +148,7 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
             val fra2 = (other.num.toFloat()/other.div)
             return  fra1.compareTo(fra2)
         }
-        if (other is Int) {return compareTo(Fraction(other))}
+        if (other is Int) {return compareTo(other.fraction())}
         if (other is Float) {(num.toFloat()/div).compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
@@ -162,7 +167,7 @@ class Modulation(val name:CPSPair, val notes: Scale) {
 }
 
 
-class Mandala(val core: CPSXany, val stellations: Scale) {
+class Mandala(val core: CPSXany, val stellations: Scale, val fullStellation: Boolean=false) {
     override fun toString(): String {
         return "${core.cpsName}: ${stellations.notes}"
     }
