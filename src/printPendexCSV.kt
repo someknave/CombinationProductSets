@@ -2,7 +2,7 @@ package org.myprojects.hexany
 
 import java.io.FileWriter
 import java.io.IOException
-
+/*
 private val CSV_HEADER = "id, name1, name2, name3, name4, name5, name6, note1, note2, note3, note4, note5, note 6, note7, note8, note9, note10, note11, note12, note13, note14, note15, isProper, isCS, isProperWithOrigin, isCSWithOrigin, isProperWithProduct, isCSWithProduct, isProperWithOandP, isCSWithOandP, scaleSize, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27"
 
 fun printPendexCSV(pendexanies: List<CPSXany>, filename: String = "Pendexany.csv") {
@@ -125,3 +125,5 @@ fun printPendexCSV(pendexanies: List<CPSXany>, filename: String = "Pendexany.csv
         }
     }
 }
+
+ */
