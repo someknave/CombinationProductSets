@@ -9,7 +9,12 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
     override fun toString(): String {
         return "{$cpsName, $notes |O:$origin, P:$product}\n"
     }
-
+    fun stellation(full: Boolean = false): Mandala {
+        if (full) {return Mandala(this, Scale(emptyList()))}
+        val posPoints = cpsName.generators.map { Fraction(it.exp(cpsName.deg)) }
+        val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
+        return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
+    }
 }
 
 

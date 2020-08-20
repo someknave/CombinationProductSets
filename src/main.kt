@@ -152,11 +152,7 @@ fun stellateCPS(core: CPSXany): Mandala{
     val allPoints = posPoints.union(negPoints).union(core.notes.notes).sortedBy { it.num.toFloat() / it.div}
     return Mandala(core, Scale(allPoints))
 }
-/*
-fun stellateDekany(dek: CPSXany): Mandala{
 
-}
-*/
 val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
@@ -190,4 +186,13 @@ fun Int.leading1():Int{
         mask = mask or mask.shr(i)
     }
     return this and (mask.shr(1).inv())
+}
+
+fun Int.exp(other:Int):Int{
+    if (other<0){return 0}
+    var acc = 1
+    for (i in 0 until other){
+        acc *= this
+    }
+    return acc
 }
