@@ -79,76 +79,86 @@ fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
 }
 
 fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
-    if ((deg < 0) or (deg + start >= size)) {return emptyList()}
-    if (deg == 0) { return listOf(Fraction(1))}
-    if (deg == 1) {
-        if (inverse) {
-            return generators.subList(start, size).map { Fraction(it).invertFraction() }
-        }
-        return generators.subList(start, size).map { Fraction(it) }
-    }
-    val notes = mutableListOf<Fraction>()
-    for (i in start..(size-deg)) {
-        val tempList = cpsInner(generators, deg-1, i+1, size, inverse).map { it * generators[i] }
-        notes.addAll(tempList)
-    }
-    return notes
+                                                    //Inner recursive function for creating Combination Product Sets. This function returns
+    if (deg !in 0..(size - start)) {return emptyList()}  //a list of fractions that are each the product of "deg" many generators.
+    if (deg == 0) { return listOf(1.toFraction())}      //First it checks for invalid inputs and returns an empty list in those cases.
+    if (deg == 1) {                                     //If degree == 0 it returns list containing just the fraction 1/1.
+        if (inverse) {                                  //True Base case degree==1 returns a list of fractions. This list contains elements
+             return generators.subList(start, size).map{1.toFraction(it)} //from the generator list converted into fractions. These fractions
+        }                                                               //are inverted if inverse is true. The sublist of generators include
+        return generators.subList(start, size).map{it.toFraction()}     //all generators from index "start" to the last generator.
+    }                                                                               //For higher degree cases, recursion is needed.
+    val notes = mutableListOf<Fraction>()                                           //"notes" is initiated as an empty mutable list of Fractions.
+    if (!inverse){                                                                  //The following section is split in to two nearly identical
+        for (i in start..(size-deg)) {                                              //cases. If inversion is false, it creates a for loop
+            val tempList = cpsInner(generators, deg-1, i+1, size, inverse) //that iterates over the generator list starting from index
+                    .map { it * generators[i].toFraction() }                    //"start" and going to "size - deg" this leaves just enough
+            notes.addAll(tempList)                                              //indexes for deeper levels of the recursion algorithm to
+        }                                                                       //return with lists of Fractions.
+        return notes                                                            //Within the For loop sets the generator to the "i"th index
+    }                                                                           //and calls another instance of cpsInner. This new instance has
+    for (i in start..(size-deg)) {                                              //"deg-1" degrees as a generator has already been set. it also has
+        val tempList = cpsInner(generators, deg-1, i+1, size, inverse)  //a start of "i+1", this ensures that we don't produce the same combination
+                .map { it * 1.toFraction(generators[i]) }                   //of generators twice. Each Fraction in the output is multiplied by the
+        notes.addAll(tempList)                                              //current generator "i" and then this list is appended to the "notes" list
+    }                                                                   //once the for loop is completed it returns the list "notes".
+    return notes    //The only difference with the second case is that the List of notes is multiplied by the inversion of the generator.
 
 }
 
-fun Int.nPk(k:Int = 0 ):BigInteger { //k=0 returns n factorial
-    require(k in 0..this)  {"k not in range 0 to n"}
-    return ((this- k + 1)..this).fold (BigInteger.ONE) { //converts accumulator to BigInteger to handle large numbers
-        acc, i -> acc * BigInteger.valueOf (i.toLong())
-    }
-}
+fun Int.nPk(k:Int = 0 ):BigInteger { //permutation and factorial function only defined for k between 0 and non negative n
+    require(k in 0..this)  {"k not in range 0 to n"}   //the function multiplies together all numbers between (n - k + 1) and n,
+    return ((this- k + 1)..this).fold (BigInteger.ONE) {    //by multiplying successive numbers from that list with the Accumulator.
+        acc, i -> acc * BigInteger.valueOf (i.toLong())     //The Accumulator is initiated as 1. this allows k==n to return a value of 1.
+    }                               //Each number is converted to BigInteger type via Long type. This allows the total multiplication to
+}                                   //reach very large numbers. Especially important for high n with low k.
 
-fun Int.nCk(k: Int):Int {
+fun Int.nCk(k: Int):Int {  //combinatorics function, divides permutations by k factorial. Only defined for k between 0 and non negative n.
     require(k in 0..this) {"k not in range 0 to n"}
-    return (this.nPk( k) / k.nPk( 0)).toInt()// returns nPk divided by k  factorial converted to integer
+    return (this.nPk( k) / k.nPk( 0)).toInt()// returns nPk divided by k  factorial. Total converted back from BigInteger to Integer.
 }
-fun Int.nthBit(shift: Int): Int {
+fun Int.nthBit(shift: Int): Int {        //simple function uses bit shifting to check the nth bit in binary notation.
     return this.shr(shift).and(1)
 }
-fun Int.countBits(): Int{
-    var n = this
-    var count = 0
-    while ( n > 0) {
+fun Int.countBits(): Int{               //Efficient algorithm for counting the number of 1 bits in the binary representation of an Int.
+    var n = this                        //the bitwise and operation of an integer n with (n-1) returns n with its final 1 bit flipped to 0.
+    var count = 0                       // this algorithm counts the number of times this operation needs to be performed before it reaches.
+    while ( n > 0) {                    // 0. The number of operations = the number of 1 bits that needed to be flipped.
         n = n and (n - 1)
         count++
     }
     return count
 }
 
-fun Int.gcd(b:Int): Int {
+fun Int.gcd(b:Int): Int {           //Efficient function for greatest common divisor (factor) uses Euclidean Algorithm.
     var i = this
     var j = b
-    while (j > 0) {
+    while (j > 0) {                 // repeatedly subtracts the smaller number from the bigger number and saves the results
         val m = i.coerceAtMost(j) //min of i and j
         j = i + j - (m *2) //the difference between the max and the min of i and j
-        i = m
+        i = m           //once the smaller number is 0 the other number must be the gcd.
     }
     return i
 }
 
-fun Int.primeDivisors(): Int{
-    var d = 1
-    for(p in primes) {
-        if (this % p == 0) {
+fun Int.primeDivisors(): Int{           //this function returns the product of the prime divisors of an integer. it is currently only used.
+    var d = 1                           //by the Fraction hash code function. 12 will return 6, 300 wil return 30 etc.
+    for(p in primes) {                  // it is fairly straight forward and it only cares about primes up to 29 as no higher primes can be
+        if (this % p == 0) {            // generated. if the prime list is increased this will be updated also.
             d *= p
         }
     }
     return d
 }
-fun Int.leading1():Int{
-    var mask = this
-    for (i in listOf(1, 2, 4, 8, 16)){
-        mask = mask or mask.shr(i)
-    }
-    return this and (mask.shr(1).inv())
-}
+fun Int.leading1():Int{                 //this function returns the power of 2 under a given number. it does this using bit level operations.
+    var mask = this                     //it makes a mask that will be used to zero out any 1s after the leading 1 in binary notation.
+    for (i in listOf(1, 2, 4, 8, 16)){  //the mask starts as a copy of the original integer and the bitwise or function is used repeatedly
+        mask = mask or mask.shr(i)      //with the mask shifted to the right in increasing amounts each time setting digits to the right
+    }                                   //of the leading 1 to 1 as well.
+    return this and (mask.shr(1).inv())  //finally the mask is shifted 1 space to the right and the bitwise and function is used
+}                                       //with the inverted mask and the original number this will leave only the leading 1 as 1.
 
-fun Int.exp(other:Int):Int{
+fun Int.exp(other:Int):Int{     //integer power function. Does not allow fractional or negative powers.
     if (other<0){return 0}
     var acc = 1
     for (i in 0 until other){
@@ -157,23 +167,23 @@ fun Int.exp(other:Int):Int{
     return acc
 }
 
-fun Int.fraction(other:Int = 1):Fraction{
-    if ((this == 0) or (other == 0)) {return Fraction(0, 0)}
-    var num = this
-    var div = other
-    if (num>=div) {
-        div *= (num / div).leading1()
-    } else {
-        num *= (div/num).leading1().shl(1)
-    }
-    val gcd = num.gcd(div)
-    num /= gcd
-    div /= gcd
-    return Fraction(num, div)
+fun Int.toFraction(other:Int = 1):Fraction{                                  //Integer to fraction converter can take divisor as an argument.
+    if ((this == 0) or (other == 0)) {return Fraction(0, 0)}        //for the purpose of tuning theory 0 is nonsensical as
+    var num = this                                                           //a numerator or as a divisor so either option is sent 0/0.
+    var div = other                                //numerator and divisor are initialised from input, these are variables as they will
+    if (num>=div) {                                 //be modified in the following steps.
+        div *= (num / div).leading1()               //In tuning theory factors of 2 are generally seen as irrelevant as they only change
+    } else {                                        //the octave, not the note name. This section multiplies either the numerator or
+        num *= (div/num).leading1().shl(1)  //the divisor by a power of 2 to put the fraction in the range between 1 and 2.
+    }                                               //This process ensures that all notes will be within the same octave.
+    val gcd = num.gcd(div)                          //Finally both numerator and divisor are divided by the greatest common divisor
+    num /= gcd                                      //To put them in the simplest form. This ensures that equal fractions will look the same.
+    div /= gcd                                      //The first step removed 0s so we don't have to worry about divide by zero faults.
+    return Fraction(num, div)                       //Simplest form of Fraction returned.
 }
 
-val primes = setOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
-val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)
+val primes = setOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)                      //current list of primes and factors needed in the CPS that the
+val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //functions produce. could be expanded for higher prime limit.
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
         13 to "Triskaideka", 14 to "Tetradeka", 15 to "Pendeka", 16 to "Hekkaideka", 17 to "Heptadeka",
@@ -184,19 +194,19 @@ val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "
         300 to "Triakosio", 400 to "Tetrakosio", 500 to "Pentakosio", 600 to "Hexakosio", 700 to "Heptakosio",
         800 to "Oktakosio", 900 to "Enneakosio",21 to "HeiskaiEikosa", 22 to "NoIdeany", 23 to "VeryBigany", 0 to ""
 )
-fun greekName(n: Int): String? {
-    if(n<1){return greek[22]}
-    if(n>=1000){return greek[23]}
-    var name = ""
-    val remainder = n % 100
-    if (n>= 100) {
-        if (remainder <= 1) {return greek[-remainder] + greek[n-remainder]+"ny"}
-        name = name + greek[n-remainder] + "kai"
-    }
-    if (remainder <= 21) return name + greek[remainder]+"ny"
-    val units = n%10
-    if (units==1) name += greek[-1]
-    name +=  greek[if(remainder<30) -20 else remainder-units]
-    if (units > 1) return name + greek[- units] + "ny"
-    return name + "ny"
-}
+fun greekName(n: Int): String? {            //this is a deliberately idiosyncratic name generator based on the names that Erv Wilson
+    if(n<1){return greek[22]}               //had already chosen for various Combination Product Sets.
+    if(n>=1000){return greek[23]}           //First the function returns stupid names for inputs out of the 1-999 range.
+    var name = ""                           //The name is initialised as an empty string to built up depending on input
+    val remainder = n % 100                 //Hundreds information is split from the remainder
+    if (n>= 100) {                          //If the number is at least 100 and the remainder is 0 or 1 the name is instantly generated
+        if (remainder <= 1) {return greek[-remainder] + greek[n-remainder]+"ny"}        //as these are special cases where there is nothing
+        name = name + greek[n-remainder] + "kai"                    //between the hundreds and the suffix.
+    }                                                               //Other numbers over 100 have the hundred segment added to the string.
+    if (remainder <= 21) return name + greek[remainder]+"ny"        //Remainders under 22 can be added as is, and don't require additional
+    val units = n%10                                                //processing. (numbers that are 1 + n hundred have already been managed.)
+    if (units<=1) {return name + greek[-units] + greek[remainder - units] +"ny"}    //units are split from 10s info and numbers that
+    name +=  greek[if(remainder<30) -20 else remainder-units]       //end in 1 or 0 are returned for similar reasons to the hundreds case.
+    return name + greek[- units] + "ny"              //numbers in the 20s have a different form,the greek form of the tens is then added.
+}                                                    //and finally the units and suffix are added and the name is returned.
+
