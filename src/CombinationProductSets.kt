@@ -4,18 +4,18 @@ import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
                    val notes:Scale = cpsName.cps(),
-                   val origin: Fraction = Fraction(1),
-                   val product: Fraction = Fraction(cpsName.generators.reduce{ acc, i -> acc * i })) {
+                   val origin: Fraction = 1.fraction(),
+                   val product: Fraction = cpsName.generators.reduce{ acc, i -> acc * i }.fraction()) {
     override fun toString(): String {
         return "{$cpsName, $notes |O:$origin, P:$product}\n"
     }
     fun stellation(full: Boolean = false): Mandala {
         if (full) {
-            val genScale = Scale(cpsName.generators.map{Fraction(it)})
+            val genScale = Scale(cpsName.generators.map{it.fraction()})
             val posScale = genScale.selfProduct(cpsName.deg)
             val negScale = genScale.inversion().selfProduct(cpsName.order - cpsName.deg).modulate(product)
             return Mandala(this, Scale(emptyList()), true)}
-        val posPoints = cpsName.generators.map { Fraction(it.exp(cpsName.deg)) }
+        val posPoints = cpsName.generators.map { it.exp(cpsName.deg).fraction() }
         val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
         return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
     }
@@ -41,7 +41,7 @@ open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = gen
     }
 }
 class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
-              val greek: String = greekName(nCk(deg, order))?:"WTFany") :
+              val greek: String = greekName(order.nCk(deg))?:"WTFany") :
         Name(generators, deg, generators.size){
     override fun toString(): String{
         return "$generators($deg|$order):$greek"
@@ -85,7 +85,7 @@ class Scale(val notes: List<Fraction>) {
     fun inversion(): Scale{ return Scale(notes.map { it.invertFraction() })}
     fun selfProduct(n:Int):Scale {
         if (n <0) {return Scale(emptyList())}
-        var scaleAcc = Scale(listOf(Fraction(1)))
+        var scaleAcc = Scale(listOf(1.fraction()))
         for (i in 0 until n) {
             scaleAcc = scaleAcc.listProduct(this)
         }
@@ -102,7 +102,7 @@ class Scale(val notes: List<Fraction>) {
     fun addition(other: Scale): Scale{
         return Scale(notes.union(other.notes).toList())
     }
-    fun modulate(interval: Fraction = Fraction(1)):Scale {
+    fun modulate(interval: Fraction = 1.fraction()):Scale {
         return Scale(notes.map{it * interval})
     }
 
@@ -115,7 +115,7 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
         return "$num/$div"
     }
     override fun hashCode(): Int {
-        return (num*div).toFloat().pow(2).toInt() / primeDivisors(div)
+        return (num*div).toFloat().pow(2).toInt() / div.primeDivisors()
     }
     override fun equals(other: Any?): Boolean {
         if (other !is Fraction) {return false}
