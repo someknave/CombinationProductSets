@@ -4,18 +4,18 @@ import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
                    val notes:Scale = cpsName.cps(),
-                   val origin: Fraction = 1.fraction(),
-                   val product: Fraction = cpsName.generators.reduce{ acc, i -> acc * i }.fraction()) {
+                   val origin: Fraction = 1.toFraction(),
+                   val product: Fraction = cpsName.generators.reduce{ acc, i -> acc * i }.toFraction()) {
     override fun toString(): String {
         return "{$cpsName, $notes |O:$origin, P:$product}\n"
     }
     fun stellation(full: Boolean = false): Mandala {
         if (full) {
-            val genScale = Scale(cpsName.generators.map{it.fraction()})
+            val genScale = Scale(cpsName.generators.map{it.toFraction()})
             val posScale = genScale.selfProduct(cpsName.deg)
             val negScale = genScale.inversion().selfProduct(cpsName.order - cpsName.deg).modulate(product)
             return Mandala(this, posScale.addition(negScale), true)}
-        val posPoints = cpsName.generators.map { it.exp(cpsName.deg).fraction() }
+        val posPoints = cpsName.generators.map { it.exp(cpsName.deg).toFraction() }
         val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
         return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
     }
@@ -88,7 +88,7 @@ class Scale(val notes: List<Fraction>) {
     fun inversion(): Scale{ return Scale(notes.map { it.invertFraction() })}
     fun selfProduct(n:Int):Scale {
         if (n <0) {return Scale(emptyList())}
-        var scaleAcc = Scale(listOf(1.fraction()))
+        var scaleAcc = Scale(listOf(1.toFraction()))
         for (i in 0 until n) {
             scaleAcc = scaleAcc.listProduct(this)
         }
@@ -105,7 +105,7 @@ class Scale(val notes: List<Fraction>) {
     fun addition(other: Scale): Scale{
         return Scale(notes.union(other.notes).toList())
     }
-    fun modulate(interval: Fraction = 1.fraction()):Scale {
+    fun modulate(interval: Fraction = 1.toFraction()):Scale {
         return Scale(notes.map{it * interval})
     }
 
@@ -126,24 +126,24 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
     }
     operator fun times(other: Any?): Fraction {
         if (other is Int) {
-            return (other * num).fraction(div)
+            return (other * num).toFraction(div)
         }
         if (other is Fraction) {
-            return (num * other.num).fraction( div * other.div)
+            return (num * other.num).toFraction( div * other.div)
         }
         return Fraction(0, 0)
     }
     operator fun div(other: Any?): Fraction{
         if (other is Int) {
-            return num.fraction(other*div)
+            return num.toFraction(other*div)
         }
         if (other is Fraction) {
-            return (num *other.div).fraction(div*other.num)
+            return (num *other.div).toFraction(div*other.num)
         }
         return Fraction(0, 0)
     }
     fun invertFraction(): Fraction{
-        return div.fraction(num)
+        return div.toFraction(num)
     }
     operator fun compareTo(other: Any?): Int {
         if (other is Fraction) {
@@ -151,7 +151,7 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
             val fra2 = (other.num.toFloat()/other.div)
             return  fra1.compareTo(fra2)
         }
-        if (other is Int) {return compareTo(other.fraction())}
+        if (other is Int) {return compareTo(other.toFraction())}
         if (other is Float) {(num.toFloat()/div).compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
