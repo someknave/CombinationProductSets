@@ -27,6 +27,21 @@ fun multiModulateHexany(pair: HexanyPair): MultiModulation{
 
 
 
+fun modulateCPS(pair: CPSPair): Modulation {
+    val mediantCode = pair.mediant.key
+    val flankCode = pair.flank.key
+    val medDeg = mediantCode.shr(24)
+    val flankDeg = flankCode.shr(24)
+    val intersect = (mediantCode and flankCode) % 1.shr(24)
+    val medFreedom = makeCPSName(mediantCode - intersect)
+    val flankFreedom = makeCPSName(flankCode - intersect)
+    val modulations = mutableListOf<Fraction>()
+    for (i in 0..intersect.countBits()){
+        modulations.addAll(medFreedom.cps(degree = medDeg - i)
+                .listProduct(flankFreedom.cps( true, flankDeg - i)).notes)
+    }
+    return Modulation(pair, pair.flank.notes.listProduct(Scale(modulations)))
+}
 
 fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     val cpsPairs = mutableListOf<CPSPair> ()
@@ -41,7 +56,7 @@ fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     return cpsPairs
 }
 
-fun makeCPS(key:Int, order: Int = 2): CPSXany {
+fun makeCPS(key:Int): CPSXany {
     val name = makeCPSName(key)
     val notes = name.cps()
     return CPSXany(name, key, notes)
@@ -58,9 +73,9 @@ fun makeCPSName(key:Int, order:Int = 14): CPSName{
     return CPSName(name, key.shr(24))
 }
 
-fun generateKeys(factors:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
-    val keys = (0..(1.shl(factors) - 1) + deg.shl(24)).toList()
-    return keys.filter { it.countBits() == order }
+fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
+    val keys = (0..(1.shl(limit) - 1) + deg.shl(24)).toList()
+    return keys.filter { (it and 16777215).countBits() == order }
 }
 
 fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
@@ -96,7 +111,7 @@ fun Int.nthBit(shift: Int): Int {
     return this.shr(shift).and(1)
 }
 fun Int.countBits(): Int{
-    var n = this and 16777215
+    var n = this
     var count = 0
     while ( n > 0) {
         n = n and (n - 1)
@@ -172,7 +187,7 @@ val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "
 fun greekName(n: Int): String? {
     if(n<1){return greek[22]}
     if(n>=1000){return greek[23]}
-    var name:String = ""
+    var name = ""
     val remainder = n % 100
     if (n>= 100) {
         if (remainder <= 1) {return greek[-remainder] + greek[n-remainder]+"ny"}
@@ -180,8 +195,8 @@ fun greekName(n: Int): String? {
     }
     if (remainder <= 21) return name + greek[remainder]+"ny"
     val units = n%10
-    if (units==1) name = name + greek[-1]
-    name = name + greek[if(remainder<30) -20 else remainder-units]
+    if (units==1) name += greek[-1]
+    name +=  greek[if(remainder<30) -20 else remainder-units]
     if (units > 1) return name + greek[- units] + "ny"
     return name + "ny"
 }

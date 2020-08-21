@@ -14,10 +14,13 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
             val genScale = Scale(cpsName.generators.map{it.fraction()})
             val posScale = genScale.selfProduct(cpsName.deg)
             val negScale = genScale.inversion().selfProduct(cpsName.order - cpsName.deg).modulate(product)
-            return Mandala(this, Scale(emptyList()), true)}
+            return Mandala(this, posScale.addition(negScale), true)}
         val posPoints = cpsName.generators.map { it.exp(cpsName.deg).fraction() }
         val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
         return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
+    }
+    fun cpsModulation(mediant: CPSXany):Modulation{
+        return modulateCPS(CPSPair(mediant, this))
     }
 }
 
