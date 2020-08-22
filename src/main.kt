@@ -18,7 +18,8 @@ fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a
     val flankFreedom = makeCPSName(flankCode - intersect)   //intersection is removed from the mediant and flank codes
     val modulations = modulationsInner(intersect,               //to get the "Freedom", the generators outside the intersection.
             medDeg, medFreedom, flankDeg, flankFreedom)         //A separate  inner function takes these factors and generates a list of
-    return Modulation(pair, pair.flank.scale.listProduct(modulations)) //modulations (transpositions) to be applied to the entire Flank CPS.
+    return Modulation(pair,                                     //modulations (transpositions) to be applied to the entire Flank CPS.
+            pair.flank.scale.listProduct(modulations))
 }
 
 fun modulationsInner(intersect:Int,                         //This is the inner function that takes in the freedoms degrees and intersections
@@ -34,25 +35,27 @@ fun modulationsInner(intersect:Int,                         //This is the inner 
     return modulations                                      //is added to the scale of modulations. Once the for loop is complete the resulting scale
 }                                                            //of modulations is returned.
 
-fun multiModulateCPS(pair: CPSPair): Modulation{
-    val mediantCode = pair.mediant.key % 1.shl(24)
-    val flankCode = pair.flank.key % 1.shl(24)
-    val medDeg = pair.mediant.cpsName.deg
-    val flankDeg = pair.flank.cpsName.deg
-    val intersect = (mediantCode and flankCode)
-    val flankFreCode = flankCode - intersect
+fun multiModulateCPS(pair: CPSPair): Modulation{                //This is a generalised version of the multi modulation.
+    val mediantCode = pair.mediant.key % 1.shl(24)      //it performs a number of flanking modulations on the same
+    val flankCode = pair.flank.key % 1.shl(24)          //mediant. The multiple flanking CPSs all share the same
+    val medDeg = pair.mediant.cpsName.deg                       //degree and the same Freedom (independent generators) but
+    val flankDeg = pair.flank.cpsName.deg                       //the intersection varies.
+    val intersect = (mediantCode and flankCode)                 //Code for the first few lines is similar to the regular
+    val flankFreCode = flankCode - intersect                    //modulation.
     val flankFreedom = makeCPSName(flankFreCode)
-    val interSize = intersect.countBits()
-    val keys = (0..mediantCode).toList()
-            .filter { it and mediantCode == it }
-            .filter { it.countBits() == interSize}
-    var scale = Scale(emptyList())
-    for (key in keys) {
-        val modulations = modulationsInner(key,  medDeg,
-                makeCPSName(mediantCode-key),
-                flankDeg, flankFreedom)
-        val modifiedFlank = makeCPSName(key+flankFreCode).cps(false, flankDeg)
-        scale = scale.addition(modulations.listProduct(modifiedFlank))
+    val interSize = intersect.countBits()                       //The size of the intersect is stored, and then the keys for
+    val keys = (0..mediantCode).toList()                        //the different intersects are generated, by generating all
+            .filter { it and mediantCode == it }                //integers up to the mediant key, filtering to only the keys
+            .filter { it.countBits() == interSize}              //with all generators in the mediant, and filtering again to
+    var scale = Scale(emptyList())                              //keys with the same number of bits as the main intersect.
+    for (key in keys) {                                         //The scale variable is initialised as an empty Scale, and then
+        val modulations = modulationsInner(key,  medDeg,        //the different intersects are iterated over each generating a
+                makeCPSName(mediantCode-key),               //Scale of modulations, and a corresponding Flanking CPS.
+                flankDeg, flankFreedom)                         //The tensor product of the Flanking scale and the modulations
+        val modifiedFlank = makeCPSName(key+flankFreCode)   //forms a new scale that is added to the accumulator scale.
+                .cps(false, flankDeg)                     //after iteration the scale is returned inside a modulation object
+        scale = scale
+                .addition(modulations.listProduct(modifiedFlank))
     }
     return Modulation(pair, scale, true)
 }
