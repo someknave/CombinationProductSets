@@ -9,7 +9,7 @@ fun main() {
 }
 
 
-/*
+/* commented out until I crack the code of the generalised case.
 fun multiModulateHexany(pair: HexanyPair): MultiModulation{
     val medkey = pair.mediant.key
     val flakey = pair.flank.key
@@ -27,21 +27,24 @@ fun multiModulateHexany(pair: HexanyPair): MultiModulation{
 
 
 
-fun modulateCPS(pair: CPSPair): Modulation {
-    val mediantCode = pair.mediant.key
-    val flankCode = pair.flank.key
-    val medDeg = mediantCode.shr(24)
-    val flankDeg = flankCode.shr(24)
-    val intersect = (mediantCode and flankCode) % 1.shr(24)
-    val medFreedom = makeCPSName(mediantCode - intersect)
-    val flankFreedom = makeCPSName(flankCode - intersect)
-    val modulations = mutableListOf<Fraction>()
-    for (i in 0..intersect.countBits()){
-        modulations.addAll(medFreedom.cps(degree = medDeg - i)
-                .listProduct(flankFreedom.cps( true, flankDeg - i)).notes)
-    }
-    return Modulation(pair, pair.flank.notes.listProduct(Scale(modulations)))
-}
+fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
+    val mediantCode = pair.mediant.key % 1.shl(24)  //code are too small to contain it. Please see Readme.md for theory.
+    val flankCode = pair.flank.key % 1.shl(24)      //First this function takes the binary keys of each CPS and zeroes
+    val medDeg = pair.mediant.cpsName.deg                   //the first 8 bits that are used to store the degree information.
+    val flankDeg = pair.flank.cpsName.deg                   //The degree information is separately stored in the "medDeg" and
+    val intersect = (mediantCode and flankCode)             //"flankDeg" values. The intersection between the generator sets
+    val medFreedom = makeCPSName(mediantCode - intersect)   //is calculated by "bitwise and" on the binary codes. This
+    val flankFreedom = makeCPSName(flankCode - intersect)   //intersection is removed from the mediant and flank codes
+    var modulations = Scale(emptyList())                    //to get the "Freedom", the generators outside the intersection.
+    for (i in 0..intersect.countBits()){                    //The modulations are stored as a scale in "modulations". Lets call the number of
+        modulations = modulations.addition(                             //generators in the intersection k. For every possible degree "i" in the
+                medFreedom.cps(degree = medDeg - i).listProduct(        //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
+                flankFreedom.cps( true, flankDeg - i)))   //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. In either case
+    }                                                                   //if that "deg-i" is less than zero or more than the size of the freedom it will return
+    return Modulation(pair, pair.flank.notes.listProduct(modulations))  //an empty scale. It then takes a tensor product of the two scales, and adds the result to
+}                                               //After the loop has completed the function returns a Modulation object.
+                                                //This stores the CPSPair as a title and a scale made by multiplying
+                                                //the original Flank by each of the modulations.
 
 fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     val cpsPairs = mutableListOf<CPSPair> ()
@@ -106,15 +109,16 @@ fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.
 
 }
 
-fun Int.nPk(k:Int = 0 ):BigInteger { //permutation and factorial function only defined for k between 0 and non negative n
-    require(k in 0..this)  {"k not in range 0 to n"}   //the function multiplies together all numbers between (n - k + 1) and n,
-    return ((this- k + 1)..this).fold (BigInteger.ONE) {    //by multiplying successive numbers from that list with the Accumulator.
-        acc, i -> acc * BigInteger.valueOf (i.toLong())     //The Accumulator is initiated as 1. this allows k==n to return a value of 1.
-    }                               //Each number is converted to BigInteger type via Long type. This allows the total multiplication to
-}                                   //reach very large numbers. Especially important for high n with low k.
+    fun Int.nPk(k:Int = 0 ):BigInteger {           //permutation and factorial function only defined for k between 0 and
+    if(k !in 0..this)  {return - BigInteger.ONE}   //non negative n (otherwise returns -1). The function multiplies together all
+    return ((this- k + 1)..this).fold (BigInteger.ONE) {    //numbers between (n - k + 1) and n, by multiplying each number in
+        acc, i -> acc * BigInteger.valueOf (i.toLong())     //that list onto the Accumulator. The Accumulator is initiated as 1.
+    }                                               //this allows k==n to return a value of 1. Each number is converted to
+}                                                   //the BigInteger type via Long type. This allows the total multiplication
+                                                    //to reach very large numbers. Especially important for high n with low k.
 
-fun Int.nCk(k: Int):Int {  //combinatorics function, divides permutations by k factorial. Only defined for k between 0 and non negative n.
-    require(k in 0..this) {"k not in range 0 to n"}
+fun Int.nCk(k: Int):Int {               //combinatorics function, divides permutations by k factorial. Only defined for k
+    if(k !in 0..this) {return -1}       //between 0 and non negative n. otherwise returns -1.
     return (this.nPk( k) / k.nPk( 0)).toInt()// returns nPk divided by k  factorial. Total converted back from BigInteger to Integer.
 }
 fun Int.nthBit(shift: Int): Int {        //simple function uses bit shifting to check the nth bit in binary notation.
@@ -134,9 +138,9 @@ fun Int.gcd(b:Int): Int {           //Efficient function for greatest common div
     var i = this
     var j = b
     while (j > 0) {                 // repeatedly subtracts the smaller number from the bigger number and saves the results
-        val m = i.coerceAtMost(j) //min of i and j
-        j = i + j - (m *2) //the difference between the max and the min of i and j
-        i = m           //once the smaller number is 0 the other number must be the gcd.
+        val m = i.coerceAtMost(j)   //min of i and j
+        j = i + j - (m *2)          //the difference between the max and the min of i and j
+        i = m                       //once the smaller number is 0 the other number must be the gcd.
     }
     return i
 }
