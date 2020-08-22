@@ -5,7 +5,9 @@ import java.math.BigInteger
 //import
 
 fun main() {
-
+    val keys =  generateKeys(7)
+    val cpses = keys.map { makeCPS(it) }
+    println(cpses)
 }
 
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
@@ -96,7 +98,7 @@ fun makeCPSName(key:Int, order:Int = 14): CPSName{
 }
 
 fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
-    val keys = (0..(1.shl(limit) - 1) + deg.shl(24)).toList()
+    val keys = (0..(1.shl(limit) - 1)).toList().map{deg.shl(24) + it}
     return keys.filter { (it and 16777215).countBits() == order }
 }
 
@@ -138,7 +140,7 @@ fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.
 
 }
 
-    fun Int.nPk(k:Int = 0 ):BigInteger {           //permutation and factorial function only defined for k between 0 and
+    fun Int.nPk(k:Int = this ):BigInteger {           //permutation and factorial function only defined for k between 0 and
     if(k !in 0..this)  {return - BigInteger.ONE}   //non negative n (otherwise returns -1). The function multiplies together all
     return ((this- k + 1)..this).fold (BigInteger.ONE) {    //numbers between (n - k + 1) and n, by multiplying each number in
         acc, i -> acc * BigInteger.valueOf (i.toLong())     //that list onto the Accumulator. The Accumulator is initiated as 1.
@@ -148,7 +150,7 @@ fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.
 
 fun Int.nCk(k: Int):Int {               //combinatorics function, divides permutations by k factorial. Only defined for k
     if(k !in 0..this) {return -1}       //between 0 and non negative n. otherwise returns -1.
-    return (this.nPk( k) / k.nPk( 0)).toInt()// returns nPk divided by k  factorial. Total converted back from BigInteger to Integer.
+    return (this.nPk(k)/k.nPk()).toInt()// returns nPk divided by k  factorial. Total converted back from BigInteger to Integer.
 }
 fun Int.nthBit(shift: Int): Int {        //simple function uses bit shifting to check the nth bit in binary notation.
     return this.shr(shift).and(1)
