@@ -5,9 +5,11 @@ import java.math.BigInteger
 //import
 
 fun main() {
-    val keys =  generateKeys(7)
-    val cpses = keys.map { makeCPS(it) }
-    println(cpses)
+    val keys =  genAllKeysTo(6)
+    val names = keys.map { makeCPSName(it)}
+    val cps = makeCPS(keys[0])
+
+    println(cps)
 }
 
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this

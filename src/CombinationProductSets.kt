@@ -5,7 +5,7 @@ import kotlin.math.pow
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
                    val notes:Scale = cpsName.cps(),
                    val origin: Fraction = 1.toFraction(),
-                   val product: Fraction = cpsName.generators.reduce{ acc, i -> acc * i }.toFraction()) {
+                   val product: Fraction = cpsName.generators.fold(1){ acc, i -> acc * i }.toFraction()) {
     override fun toString(): String {
         return "{$cpsName, $notes |O:$origin, P:$product}\n"
     }
@@ -54,6 +54,9 @@ class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
 
 class Scale(val notes: List<Fraction>) {
     val intervals: List<List<Fraction>> by lazy {intervalsBySteps(notes)}
+    override fun toString(): String {
+        return notes.toString()
+    }
     fun isConstantStructure(): Boolean {
         val size = this.notes.size
         for (i in 0 until (size - 1)) {
