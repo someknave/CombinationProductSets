@@ -8,25 +8,6 @@ fun main() {
 
 }
 
-
-/* commented out until I crack the code of the generalised case.
-fun multiModulateHexany(pair: HexanyPair): MultiModulation{
-    val medkey = pair.mediant.key
-    val flakey = pair.flank.key
-    val shared = medkey and flakey
-    if (countBits(shared) != 3) {return MultiModulation(pair.mediant, 0, emptyList(), pair.flank)
-    }
-    val flaktor = (flakey - (shared))
-    val dekany = CPSXany((makeHexName(medkey+flaktor)), medkey+flaktor)
-    val multiModulation = dekany.notes
-            .union(cps(pair.mediant.name, 3).map{it / factors[binaryPower(flaktor)]})
-            .toList().sortedBy {it.numerator.toFloat() / it.denominator}
-    return MultiModulation(pair.mediant, factors[binaryPower(flaktor)], multiModulation, dekany )
-}
-*/
-
-
-
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
     val mediantCode = pair.mediant.key % 1.shl(24)  //code are too small to contain it. Please see Readme.md for theory.
     val flankCode = pair.flank.key % 1.shl(24)      //First this function takes the binary keys of each CPS and zeroes
@@ -35,16 +16,54 @@ fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a
     val intersect = (mediantCode and flankCode)             //"flankDeg" values. The intersection between the generator sets
     val medFreedom = makeCPSName(mediantCode - intersect)   //is calculated by "bitwise and" on the binary codes. This
     val flankFreedom = makeCPSName(flankCode - intersect)   //intersection is removed from the mediant and flank codes
-    var modulations = Scale(emptyList())                    //to get the "Freedom", the generators outside the intersection.
-    for (i in 0..intersect.countBits()){                    //The modulations are stored as a scale in "modulations". Lets call the number of
-        modulations = modulations.addition(                             //generators in the intersection k. For every possible degree "i" in the
-                medFreedom.cps(degree = medDeg - i).listProduct(        //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
-                flankFreedom.cps( true, flankDeg - i)))   //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. In either case
-    }                                                                   //if that "deg-i" is less than zero or more than the size of the freedom it will return
-    return Modulation(pair, pair.flank.notes.listProduct(modulations))  //an empty scale. It then takes a tensor product of the two scales, and adds the result to
-}                                               //After the loop has completed the function returns a Modulation object.
-                                                //This stores the CPSPair as a title and a scale made by multiplying
-                                                //the original Flank by each of the modulations.
+    val modulations = modulationsInner(intersect,               //to get the "Freedom", the generators outside the intersection.
+            medDeg, medFreedom, flankDeg, flankFreedom)         //A separate  inner function takes these factors and generates a list of
+    return Modulation(pair, pair.flank.notes.listProduct(modulations)) //modulations (transpositions) to be applied to the entire Flank CPS.
+}
+
+fun modulationsInner(intersect:Int,                         //This is the inner function that takes in the freedoms degrees and intersections
+                     medDeg:Int, medFreedom:CPSName,        //and returns a list of modulations (transpositions) to apply to the Flank.
+                     flankDeg:Int, flankFreedom:CPSName)    //A variable modulations is created as an empty scale. as modulations are generated they will be added to this scale.
+        : Scale {                                           //Lets call the number of generators in the intersection k. For every possible degree "i" in the
+    var modulations = Scale(emptyList())                    //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
+    for (i in 0..intersect.countBits()) {                    //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. Both degrees require
+        modulations = modulations.addition(                 //"deg-i" to be between 0 and the size of the freedom otherwise it will return
+                medFreedom.cps(degree = medDeg - i).listProduct(    //an empty scale. It then takes a tensor product of the two scales, and adds the result to
+                        flankFreedom.cps(true, flankDeg - i))) //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
+    }                                                       //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. In either case this
+    return modulations                                      //is added to the scale of modulations. Once the for loop is complete the resulting scale
+}                                                            //of modulations is returned.
+
+fun multiModulateCPS(pair: CPSPair): Modulation{
+    val mediantCode = pair.mediant.key % 1.shl(24)
+    val flankCode = pair.flank.key % 1.shl(24)
+    val medDeg = pair.mediant.cpsName.deg
+    val flankDeg = pair.flank.cpsName.deg
+    val intersect = (mediantCode and flankCode)
+    val flankFreCode = flankCode - intersect
+    val flankFreedom = makeCPSName(flankFreCode)
+    val interSize = intersect.countBits()
+    val keys = (0..mediantCode).toList()
+            .filter { it and mediantCode == it }
+            .filter { it.countBits() == interSize}
+    var scale = Scale(emptyList())
+    for (key in keys) {
+        val modulations = modulationsInner(key,  medDeg,
+                makeCPSName(mediantCode-key),
+                flankDeg, flankFreedom)
+        val modifiedFlank = makeCPSName(key+flankFreCode).cps(false, flankDeg)
+        scale = scale.addition(modulations.listProduct(modifiedFlank))
+    }
+    return Modulation(pair, scale, true)
+}
+
+
+
+
+
+
+
+
 
 fun makeCPSPairs(polyanies: List<CPSXany>): List<CPSPair> {
     val cpsPairs = mutableListOf<CPSPair> ()

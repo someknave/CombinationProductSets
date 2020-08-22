@@ -163,9 +163,10 @@ class CPSPair(val mediant: CPSXany, val flank: CPSXany) {
     }
 }
 
-class Modulation(val name:CPSPair, val notes: Scale) {
+class Modulation(val name:CPSPair, val notes: Scale, val multiMod: Boolean = false) {
     override fun toString(): String {
-        return "$name: ${notes.notes}"
+        return if (multiMod) {"Multiple Modulation $name: ${notes.notes}"}
+        else {"$name: ${notes.notes}"}
     }
 }
 
