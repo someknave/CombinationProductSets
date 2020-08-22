@@ -81,6 +81,16 @@ fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
     return keys.filter { (it and 16777215).countBits() == order }
 }
 
+fun genAllKeysTo(limit: Int = 14, deg: Int = 3, order: Int=6): List<Int> {
+    val keyAcc = mutableListOf<Int>(0)
+    for (i in 1..order){
+        for (j in 1..deg.coerceAtMost(i)) {
+            keyAcc.addAll(generateKeys(limit, j, i))
+        }
+    }
+    return keyAcc.toList()
+}
+
 fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
                                                     //Inner recursive function for creating Combination Product Sets. This function returns
     if (deg !in 0..(size - start)) {return emptyList()}  //a list of fractions that are each the product of "deg" many generators.
