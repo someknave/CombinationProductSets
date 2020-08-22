@@ -3,11 +3,11 @@ package org.myprojects.hexany
 import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
-                   val notes:Scale = cpsName.cps(),
+                   val scale:Scale = cpsName.cps(),
                    val origin: Fraction = 1.toFraction(),
                    val product: Fraction = cpsName.generators.fold(1){ acc, i -> acc * i }.toFraction()) {
     override fun toString(): String {
-        return "{$cpsName, $notes |O:$origin, P:$product}\n"
+        return "{$cpsName, $scale |O:$origin, P:$product}\n"
     }
     fun stellation(full: Boolean = false): Mandala {
         if (full) {
@@ -17,7 +17,7 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
             return Mandala(this, posScale.addition(negScale), true)}
         val posPoints = cpsName.generators.map { it.exp(cpsName.deg).toFraction() }
         val negPoints = cpsName.generators.map { product / it.exp(cpsName.order - cpsName.deg)}
-        return Mandala(this, Scale(posPoints.union(negPoints).union(notes.notes).toList()))
+        return Mandala(this, Scale(posPoints.union(negPoints).union(scale.notes).toList()))
     }
     fun cpsModulation(mediant: CPSXany):Modulation{
         return modulateCPS(CPSPair(mediant, this))
@@ -106,10 +106,10 @@ class Scale(val notes: List<Fraction>) {
         return Scale(product.sortedBy { it.num.toFloat()/it.div }.distinct())
     }
     fun addition(other: Scale): Scale{
-        return Scale(notes.union(other.notes).toList())
+        return Scale(notes.union(other.notes).toList().sortedBy { it.num.toFloat()/it.div })
     }
     fun modulate(interval: Fraction = 1.toFraction()):Scale {
-        return Scale(notes.map{it * interval})
+        return Scale(notes.map{it * interval}.sortedBy { it.num.toFloat()/it.div })
     }
 
 }
@@ -166,10 +166,10 @@ class CPSPair(val mediant: CPSXany, val flank: CPSXany) {
     }
 }
 
-class Modulation(val name:CPSPair, val notes: Scale, val multiMod: Boolean = false) {
+class Modulation(val name:CPSPair, val scale: Scale, val multiMod: Boolean = false) {
     override fun toString(): String {
-        return if (multiMod) {"Multiple Modulation $name: ${notes.notes}"}
-        else {"$name: ${notes.notes}"}
+        return if (multiMod) {"Multiple Modulation $name: ${scale.notes}"}
+        else {"$name: ${scale.notes}"}
     }
 }
 
@@ -181,7 +181,7 @@ class Mandala(val core: CPSXany, val stellations: Scale, val fullStellation: Boo
 }
 
 class Diamond(val name: Name, val key: Int = name.nameToKey(),
-              val notes: Scale = name.cps(inverse= false)
+              val scale: Scale = name.cps(inverse= false)
                       .listProduct(name.cps(inverse=  true))){
 
 }

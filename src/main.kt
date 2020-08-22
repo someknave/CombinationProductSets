@@ -5,11 +5,7 @@ import java.math.BigInteger
 //import
 
 fun main() {
-    val keys =  genAllKeysTo(6)
-    val names = keys.map { makeCPSName(it)}
-    val cps = makeCPS(keys[0])
 
-    println(cps)
 }
 
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
@@ -22,7 +18,7 @@ fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a
     val flankFreedom = makeCPSName(flankCode - intersect)   //intersection is removed from the mediant and flank codes
     val modulations = modulationsInner(intersect,               //to get the "Freedom", the generators outside the intersection.
             medDeg, medFreedom, flankDeg, flankFreedom)         //A separate  inner function takes these factors and generates a list of
-    return Modulation(pair, pair.flank.notes.listProduct(modulations)) //modulations (transpositions) to be applied to the entire Flank CPS.
+    return Modulation(pair, pair.flank.scale.listProduct(modulations)) //modulations (transpositions) to be applied to the entire Flank CPS.
 }
 
 fun modulationsInner(intersect:Int,                         //This is the inner function that takes in the freedoms degrees and intersections
@@ -60,12 +56,6 @@ fun multiModulateCPS(pair: CPSPair): Modulation{
     }
     return Modulation(pair, scale, true)
 }
-
-
-
-
-
-
 
 
 
