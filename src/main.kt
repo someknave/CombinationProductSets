@@ -221,6 +221,7 @@ fun Int.toFraction(other:Int = 1):Fraction{                                  //I
 val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
 val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //functions produce. could be expanded for higher prime limit.
 val primeFactors = FactorScale(listOf(3, 5, 7, 11, 13, 17, 19, 23, 29, 31).map{it.toFraction().factor()})
+val octave = Fraction(2, 1).factor()
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
         13 to "Triskaideka", 14 to "Tetradeka", 15 to "Pendeka", 16 to "Hekkaideka", 17 to "Heptadeka",

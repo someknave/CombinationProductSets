@@ -225,12 +225,16 @@ class FactorScale(val notes:List<FactorNote>) {
     override fun toString(): String {
         return "$notes"
     }
-    fun map(interval: FactorNote):IntervalMap{
+    fun map(interval: FactorNote, period: FactorNote = octave):IntervalMap{
         val facMap = mutableMapOf<FactorNote, FactorNote>()
         for (note in notes) {
             val note2 = note.add(interval)
+            val note3 = note2.difference(period)
             if (note2 in notes) {
                 facMap.put(note, note2 )
+            }
+            if (note3 in notes){
+                facMap.put(note, note3 )
             }
         }
         return IntervalMap(interval, facMap.toMap())
