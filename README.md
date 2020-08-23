@@ -14,6 +14,8 @@ The program can also do modulations and stellations of these structures and make
 
 The write to csv functionality needs to be updated to the new versions of the datastructures and generalised so a separate .kt file isn't needed for each scale type.
 
+Output from previous versions of the project are included in the project: [1001 Hexany](https://github.com/someknave/CombinationProductSets/blob/master/Hexany.csv), [2002 Dekany](https://github.com/someknave/CombinationProductSets/blob/master/Dekany.csv), [3003 Pendexany](https://github.com/someknave/CombinationProductSets/blob/master/Pendexany.csv)
+
 The Scale Diagram function is underway. the structures for determining if two points should be connected with a line are inplace. The image processing is not implemented, and the function that converts the prime facorisation to a 2d location needs to be made.
 
 Further information about the Project status can be found in my [GitHub Project page](https://github.com/someknave/CombinationProductSets/projects/1), I also have a related project that is in its infancy using Pure Data to make a microtonal music app [GitHub Project page](https://github.com/someknave/CombinationProductSets/projects/2).
