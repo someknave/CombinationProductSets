@@ -111,6 +111,9 @@ class Scale(val notes: List<Fraction>) {
     fun modulate(interval: Fraction = 1.toFraction()):Scale {
         return Scale(notes.map{it * interval}.sortedBy { it.num.toFloat()/it.div })
     }
+    fun toFactorScale(limit: Int = 10): FactorScale{
+        return FactorScale(notes.map { it.factor(limit) })
+    }
 
 }
 
@@ -207,6 +210,52 @@ class Diamond(val name: Name, val key: Int = name.nameToKey(),
 class FactorNote(val name:Fraction, val factors:List<Int>){
     override fun toString(): String {
         return "$name: $factors"
+    }
+    fun add(other: FactorNote):FactorNote{
+        val adFactor = this.factors.zip(other.factors) {a:Int, b:Int -> a+b}
+        return FactorNote(adFactor.toFraction(), adFactor)
+    }
+    fun difference(other:FactorNote):FactorNote{
+        val difFactor = this.factors.zip(other.factors) { a:Int, b:Int -> a-b}
+        return FactorNote(difFactor.toFraction(), difFactor)
+    }
+}
+
+class FactorScale(val notes:List<FactorNote>) {
+    override fun toString(): String {
+        return "$notes"
+    }
+    fun map(interval: FactorNote):IntervalMap{
+        val facMap = mutableMapOf<FactorNote, FactorNote>()
+        for (note in notes) {
+            val note2 = note.add(interval)
+            if (note2 in notes) {
+                facMap.put(note, note2 )
+            }
+        }
+        return IntervalMap(interval, facMap.toMap())
+    }
+    fun makeStructure():ScaleStructure {
+        val maps = mutableListOf<IntervalMap>()
+        for (prime in primeFactors.notes) {
+            val primeMap = this.map(prime)
+            if (primeMap.map.isNotEmpty()) {
+                maps.add(primeMap)
+            }
+        }
+        return ScaleStructure(this, maps.toList())
+    }
+}
+
+class IntervalMap(val interval: FactorNote, val map: Map<FactorNote, FactorNote>) {
+    override fun toString(): String {
+        return "$interval:$map\n"
+    }
+}
+
+class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
+    override fun toString(): String {
+        return "$scale\n$maps"
     }
 }
 

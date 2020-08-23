@@ -197,6 +197,12 @@ fun Int.exp(other:Int):Int{     //integer power function. Does not allow fractio
     return acc
 }
 
+fun List<Int>.toFraction():Fraction{
+    val num = this.zip(primes) {a:Int, b:Int -> b.exp(0.coerceAtLeast(a))}.fold(1){acc, i -> acc*i}
+    val div = this.zip(primes) {a:Int, b:Int -> b.exp(0.coerceAtLeast(-a))}.fold(1){acc, i -> acc*i}
+    return num.toFraction(div)
+}
+
 fun Int.toFraction(other:Int = 1):Fraction{                                  //Integer to fraction converter can take divisor as an argument.
     if ((this == 0) or (other == 0)) {return Fraction(0, 0)}        //for the purpose of tuning theory 0 is nonsensical as
     var num = this                                                           //a numerator or as a divisor so either option is sent 0/0.
@@ -214,6 +220,7 @@ fun Int.toFraction(other:Int = 1):Fraction{                                  //I
 
 val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
 val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //functions produce. could be expanded for higher prime limit.
+val primeFactors = FactorScale(listOf(3, 5, 7, 11, 13, 17, 19, 23, 29, 31).map{it.toFraction().factor()})
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
         13 to "Triskaideka", 14 to "Tetradeka", 15 to "Pendeka", 16 to "Hekkaideka", 17 to "Heptadeka",
@@ -230,12 +237,14 @@ fun greekName(n: Int): String? {            //this is a deliberately idiosyncrat
     var name = ""                           //The name is initialised as an empty string to built up depending on input
     val remainder = n % 100                 //Hundreds information is split from the remainder
     if (n>= 100) {                          //If the number is at least 100 and the remainder is 0 or 1 the name is instantly generated
-        if (remainder <= 1) {return greek[-remainder] + greek[n-remainder]+"ny"}        //as these are special cases where there is nothing
+        if (remainder <= 1) {
+            return greek[-remainder] + greek[n-remainder]+"ny"}        //as these are special cases where there is nothing
         name = name + greek[n-remainder] + "kai"                    //between the hundreds and the suffix.
     }                                                               //Other numbers over 100 have the hundred segment added to the string.
     if (remainder <= 21) return name + greek[remainder]+"ny"        //Remainders under 22 can be added as is, and don't require additional
     val units = n%10                                                //processing. (numbers that are 1 + n hundred have already been managed.)
-    if (units<=1) {return name + greek[-units] + greek[remainder - units] +"ny"}    //units are split from 10s info and numbers that
+    if (units<=1) {
+        return name + greek[-units] + greek[remainder - units] +"ny"}    //units are split from 10s info and numbers that
     name +=  greek[if(remainder<30) -20 else remainder-units]       //end in 1 or 0 are returned for similar reasons to the hundreds case.
     return name + greek[- units] + "ny"              //numbers in the 20s have a different form,the greek form of the tens is then added.
 }                                                    //and finally the units and suffix are added and the name is returned.
