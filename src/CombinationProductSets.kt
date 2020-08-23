@@ -235,12 +235,12 @@ class FactorScale(val notes:List<FactorNote>) {
         }
         return IntervalMap(interval, facMap.toMap())
     }
-    fun makeStructure():ScaleStructure {
+    fun makeStructure(intervals:FactorScale = primeFactors):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
-        for (prime in primeFactors.notes) {
-            val primeMap = this.map(prime)
-            if (primeMap.map.isNotEmpty()) {
-                maps.add(primeMap)
+        for (int in intervals.notes) {
+            val intMap = this.map(int)
+            if (intMap.map.isNotEmpty()) {
+                maps.add(intMap)
             }
         }
         return ScaleStructure(this, maps.toList())
