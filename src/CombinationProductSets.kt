@@ -158,6 +158,24 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
         if (other is Float) {(num.toFloat()/div).compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
+    fun factor(limit:Int = 10): FactorNote{
+        val factors = MutableList<Int>(limit) {0}
+        if ((num == 0)or (div == 0))  {
+            return FactorNote(this, factors.toList())}
+        val fraction = mutableListOf(num, div)
+        for (i in 0..limit){
+            val prime = primes[i]
+            while (fraction[0] % prime == 0) {
+                factors[i] += 1
+                fraction[0] /= prime
+            }
+            while (fraction[1] % prime == 0) {
+                factors[i] -= 1
+                fraction[1] /= prime
+            }
+        }
+        return FactorNote(this, factors.toList())
+    }
 }
 
 class CPSPair(val mediant: CPSXany, val flank: CPSXany) {
@@ -184,6 +202,12 @@ class Diamond(val name: Name, val key: Int = name.nameToKey(),
               val scale: Scale = name.cps(inverse= false)
                       .listProduct(name.cps(inverse=  true))){
 
+}
+
+class FactorNote(val name:Fraction, val factors:List<Int>){
+    override fun toString(): String {
+        return "$name: $factors"
+    }
 }
 
 

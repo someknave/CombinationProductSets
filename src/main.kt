@@ -93,12 +93,12 @@ fun makeCPSName(key:Int, order:Int = 14): CPSName{
 }
 
 fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
-    val keys = (0..(1.shl(limit) - 1)).toList().map{deg.shl(24) + it}
+    val keys = (0 until 1.shl(limit)).toList().map{deg.shl(24) + it}
     return keys.filter { (it and 16777215).countBits() == order }
 }
 
 fun genAllKeysTo(limit: Int = 14, deg: Int = 3, order: Int=6): List<Int> {
-    val keyAcc = mutableListOf<Int>(0)
+    val keyAcc = mutableListOf(0)
     for (i in 1..order){
         for (j in 1..deg.coerceAtMost(i)) {
             keyAcc.addAll(generateKeys(limit, j, i))
@@ -212,7 +212,7 @@ fun Int.toFraction(other:Int = 1):Fraction{                                  //I
     return Fraction(num, div)                       //Simplest form of Fraction returned.
 }
 
-val primes = setOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29)                      //current list of primes and factors needed in the CPS that the
+val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
 val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //functions produce. could be expanded for higher prime limit.
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
