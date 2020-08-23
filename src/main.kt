@@ -223,9 +223,9 @@ val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //fu
 val primeFactors = FactorScale(listOf(3, 5, 7, 11, 13, 17, 19, 23, 29, 31).map{it.toFraction().factor()})
 val octave = Fraction(2, 1).factor()
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
-        6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendeka", 12 to "Dodeka",
-        13 to "Triskaideka", 14 to "Tetradeka", 15 to "Pendeka", 16 to "Hekkaideka", 17 to "Heptadeka",
-        18 to "Oktadeka", 19 to "Enkaideka", 20 to "Eikosa" ,-20 to "Eikosi", -1 to "Heiskai", -2 to "kaiDie",
+        6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendexa", 12 to "Dodexa",
+        13 to "Triskaidexa", 14 to "Tetradexa", 15 to "Pendexa", 16 to "Hekkaideka", 17 to "Heptadeka",
+        18 to "Oktadeka", 19 to "Enekaideka", 20 to "Eikosa" ,-20 to "Eikosi", -1 to "Heiskai", -2 to "kaiDie",
         -3 to "kaiTria", -4 to "kaiTetra", -5 to "kaiPenta",-6 to "kaiHexa", -7 to "kaiHepta", -8 to "kaiOkta",
         -9 to "kaiEnnea", 30 to "Trikonta", 40 to "Tessarakonta", 50 to "Pentekonta", 60 to "Hexekonta",
         70 to "Hebdomekonta", 80 to "Ogdoekonta", 90 to "Enenekonta", 100 to "Hekato", 200 to "Dikosio",
