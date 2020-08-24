@@ -6,6 +6,7 @@ import kotlin.math.log
 //import
 
 fun main() {
+    print(primes)
 
 }
 
@@ -19,15 +20,14 @@ fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a
     val medFreedom = makeCPSName(mediantCode - intersect, period = period)   //is calculated by "bitwise and" on the binary codes. This
     val flankFreedom = makeCPSName(flankCode - intersect, period = period)   //intersection is removed from the mediant and flank codes
     val modulations = modulationsInner(intersect,               //to get the "Freedom", the generators outside the intersection.
-            medDeg, medFreedom, flankDeg, flankFreedom, period)         //A separate  inner function takes these factors and generates a list of
+            medDeg, medFreedom, flankDeg, flankFreedom)         //A separate  inner function takes these factors and generates a list of
     return Modulation(pair,                                     //modulations (transpositions) to be applied to the entire Flank CPS.
             pair.flank.scale.listProduct(modulations))
 }
 
 fun modulationsInner(intersect:Int,                         //This is the inner function that takes in the freedoms degrees and intersections
                      medDeg:Int, medFreedom:CPSName,        //and returns a list of modulations (transpositions) to apply to the Flank.
-                     flankDeg:Int, flankFreedom:CPSName,
-                     period: Period = octave)    //A variable modulations is created as an empty scale. as modulations are generated they will be added to this scale.
+                     flankDeg:Int, flankFreedom:CPSName)    //A variable modulations is created as an empty scale. as modulations are generated they will be added to this scale.
         : Scale {                                           //Lets call the number of generators in the intersection k. For every possible degree "i" in the
     var modulations = Scale(emptyList())                    //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
     for (i in 0..intersect.countBits()) {                    //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. Both degrees require
@@ -46,7 +46,8 @@ fun multiModulateCPS(pair: CPSPair): Modulation{
     val flankDeg = pair.flank.cpsName.deg                       //the intersection varies.
     val intersect = (mediantCode and flankCode)                 //Code for the first few lines is similar to the regular
     val flankFreCode = flankCode - intersect                    //modulation.
-    val flankFreedom = makeCPSName(flankFreCode)
+    val flankFreedom = makeCPSName(
+            flankFreCode, period =  pair.flank.cpsName.period)
     val interSize = intersect.countBits()                       //The size of the intersect is stored, and then the keys for
     val keys = (0..mediantCode).toList()                        //the different intersects are generated, by generating all
             .filter { it and mediantCode == it }                //integers up to the mediant key, filtering to only the keys
@@ -54,9 +55,9 @@ fun multiModulateCPS(pair: CPSPair): Modulation{
     var scale = Scale(emptyList())                              //keys with the same number of bits as the main intersect.
     for (key in keys) {                                         //The scale variable is initialised as an empty Scale, and then
         val modulations = modulationsInner(key,  medDeg,        //the different intersects are iterated over each generating a
-                makeCPSName(mediantCode-key),               //Scale of modulations, and a corresponding Flanking CPS.
-                flankDeg, flankFreedom, period)                         //The tensor product of the Flanking scale and the modulations
-        val modifiedFlank = makeCPSName(key+flankFreCode)   //forms a new scale that is added to the accumulator scale.
+                makeCPSName(mediantCode-key, period = period),               //Scale of modulations, and a corresponding Flanking CPS.
+                flankDeg, flankFreedom)                         //The tensor product of the Flanking scale and the modulations
+        val modifiedFlank = makeCPSName(key+flankFreCode, period = period)   //forms a new scale that is added to the accumulator scale.
                 .cps(false, flankDeg)                     //after iteration the scale is returned inside a modulation object
         scale = scale
                 .addition(modulations.listProduct(modifiedFlank))
@@ -233,13 +234,13 @@ fun Int.toFraction(other:Int = 1, period: Period = octave):Fraction{            
         }
     } else {
         val order = log(num.toFloat()/div,
-                period.name.toFloat()).toInt()
+                period.toFloat()).toInt()
         if (order < 1){
-            num *= period.name.num.exp(-order)
-            div *= period.name.div.exp(-order)
+            num *= period.num.exp(-order)
+            div *= period.div.exp(-order)
         } else {
-            num *= period.name.div.exp(order)
-            div *= period.name.num.exp(order)
+            num *= period.div.exp(order)
+            div *= period.num.exp(order)
         }
     }                                                //This process ensures that all notes will be within the same octave.
     val gcd = num.gcd(div)                          //Finally both numerator and divisor are divided by the greatest common divisor
@@ -250,14 +251,15 @@ fun Int.toFraction(other:Int = 1, period: Period = octave):Fraction{            
 
 val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
                                                                               //functions produce. could be expanded for higher prime limit.
-val primeFactors = FactorScale(primes.map{it.toFraction().factor()})
-val octave = Period (Fraction(2, 1), listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27))
-val tritave = Period (Fraction(3, 1), listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
-val fifth = Period (Fraction(3, 2), listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
-val pentave = Period (Fraction(5, 1), listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
-val tenth = Period (Fraction(5, 2), listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
-val sixth = Period (Fraction(5, 3), listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
+
+val octave = Period (2, 1, listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27))
+val tritave = Period (3, 1, listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
+val fifth = Period (3, 2, listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
+val pentave = Period (5, 1, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
+val tenth = Period (5, 2, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
+val sixth = Period (5, 3, listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
 val periods = listOf(octave, tritave, fifth, pentave, tenth, sixth)
+//val primeFactors = FactorScale(primes.map{it.toFraction(1, octave).factor()})
 val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 14, 11 to -11, 13 to -4),
         mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 11, 11 to 14, 13 to 7), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),

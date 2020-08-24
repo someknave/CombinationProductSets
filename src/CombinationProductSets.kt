@@ -28,7 +28,7 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
 open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = generators.size, val period: Period = octave){
     override fun toString(): String {
         return if (period == octave) {"$generators($deg|$order)"}
-        else {"$generators($deg|$order) Period:${period.name}"}
+        else {"$generators($deg|$order) Period:(${period.num}/${period.div})"}
     }
     fun nameToKey():Int {
         var key = deg.shl(24)
@@ -104,13 +104,13 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
         for (a in notes){
             product.addAll(other.notes.map { a * it})
         }
-        return Scale(product.sortedBy { it.num.toFloat()/it.div }.distinct())
+        return Scale(product.sortedBy { it.toFloat() }.distinct())
     }
     fun addition(other: Scale): Scale{
-        return Scale(notes.union(other.notes).toList().sortedBy { it.num.toFloat()/it.div })
+        return Scale(notes.union(other.notes).toList().sortedBy { it.toFloat()})
     }
     fun modulate(interval: Fraction = 1.toFraction()):Scale {
-        return Scale(notes.map{it * interval}.sortedBy { it.num.toFloat()/it.div })
+        return Scale(notes.map{it * interval}.sortedBy { it.toFloat() })
     }
     fun toFactorScale(limit: Int = 10): FactorScale{
         return FactorScale(notes.map { it.factor(limit) })
@@ -120,7 +120,7 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
 
 
 
-class Fraction(var num:Int = 1, var div:Int = 1, private val period: Period= octave) {
+class Fraction(var num:Int = 1, var div:Int = 1, val period: Period = octave) {
     override fun toString(): String {
         return "$num/$div"
     }
@@ -231,7 +231,7 @@ class FactorScale(val notes:List<FactorNote>) {
         val facMap = mutableMapOf<FactorNote, FactorNote>()
         for (note in notes) {
             val note2 = note.add(interval)
-            val note3 = note2.difference(period.name.factor())
+            val note3 = note2.difference(period.num.toFraction(period.div).factor())
             if (note2 in notes) {
                 facMap.put(note, note2 )
             }
@@ -241,7 +241,7 @@ class FactorScale(val notes:List<FactorNote>) {
         }
         return IntervalMap(interval, facMap.toMap())
     }
-    fun makeStructure(intervals:FactorScale = primeFactors):ScaleStructure {
+    /*fun makeStructure(intervals:FactorScale = primeFactors):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
         for (int in intervals.notes) {
             val intMap = this.map(int)
@@ -250,7 +250,7 @@ class FactorScale(val notes:List<FactorNote>) {
             }
         }
         return ScaleStructure(this, maps.toList())
-    }
+    }*/
 }
 
 class IntervalMap(val interval: FactorNote, val map: Map<FactorNote, FactorNote>) {
@@ -265,7 +265,10 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     }
 }
 
-class Period(val name: Fraction, val factors: List<Int>) {
+class Period(val num: Int, val div: Int, val factors: List<Int>) {
+    fun toFloat():Float{
+        return num.toFloat()/div
+    }
 
 }
 class XYMap(val mapX: Map<Int, Int>, val mapY: Map<Int, Int>,val period: Period = octave) {
