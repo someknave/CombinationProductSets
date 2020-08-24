@@ -46,7 +46,7 @@ open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = gen
 }
 class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size, period: Period = octave,
               val greek: String = greekName(order.nCk(deg))?:"WTFany") :
-        Name(generators, deg, generators.size){
+        Name(generators, deg, generators.size, period){
     override fun toString(): String{
         return "$generators($deg|$order):$greek"
     }
@@ -112,7 +112,7 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
     fun modulate(interval: Fraction = 1.toFraction()):Scale {
         return Scale(notes.map{it * interval}.sortedBy { it.toFloat() })
     }
-    fun toFactorScale(limit: Int = 10): FactorScale{
+    fun toFactorScale(limit: Int = 11): FactorScale{
         return FactorScale(notes.map { it.factor(limit) })
     }
 
@@ -159,16 +159,16 @@ class Fraction(var num:Int = 1, var div:Int = 1, val period: Period = octave) {
         if (other is Fraction) {
             return  this.toFloat().compareTo(other.toFloat())
         }
-        if (other is Int) {return compareTo(other.toFraction())}
+        if (other is Int) {return compareTo(other.toFraction(period = period))}
         if (other is Float) {return this.toFloat().compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
-    fun factor(limit:Int = 10): FactorNote{
+    fun factor(limit:Int = 11): FactorNote{
         val factors = MutableList<Int>(limit) {0}
         if ((num == 0)or (div == 0))  {
             return FactorNote(this, factors.toList())}
         val fraction = mutableListOf(num, div)
-        for (i in 0..limit){
+        for (i in 0 until limit){
             val prime = primes[i]
             while (fraction[0] % prime == 0) {
                 factors[i] += 1
@@ -221,6 +221,15 @@ class FactorNote(val name:Fraction, val factors:List<Int>){
         val difFactor = this.factors.zip(other.factors) { a:Int, b:Int -> a-b}
         return FactorNote(difFactor.toFraction(), difFactor)
     }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is FactorNote) {return false}
+        return (name == other.name)
+    }
 }
 
 class FactorScale(val notes:List<FactorNote>) {
@@ -241,16 +250,16 @@ class FactorScale(val notes:List<FactorNote>) {
         }
         return IntervalMap(interval, facMap.toMap())
     }
-    /*fun makeStructure(intervals:FactorScale = primeFactors):ScaleStructure {
+    fun makeStructure(intervals:FactorScale = primeFactorScale):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
-        for (int in intervals.notes) {
+        for (int in intervals.notes.filter{it != Fraction(1, 1).factor()}) {
             val intMap = this.map(int)
             if (intMap.map.isNotEmpty()) {
                 maps.add(intMap)
             }
         }
         return ScaleStructure(this, maps.toList())
-    }*/
+    }
 }
 
 class IntervalMap(val interval: FactorNote, val map: Map<FactorNote, FactorNote>) {

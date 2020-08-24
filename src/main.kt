@@ -6,9 +6,13 @@ import kotlin.math.log
 //import
 
 fun main() {
-    print(primes)
+    val scale = CPSName(listOf(1, 3, 5, 7)).cps()
+    val facScale = scale.toFactorScale()
+    print(facScale.makeStructure())
+
 
 }
+
 
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
     val period = pair.mediant.cpsName.period
@@ -254,12 +258,13 @@ val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                     
 
 val octave = Period (2, 1, listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27))
 val tritave = Period (3, 1, listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
+val doubleOctave = Period (4, 1, listOf(1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15, 18, 21))
 val fifth = Period (3, 2, listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
 val pentave = Period (5, 1, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
 val tenth = Period (5, 2, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
 val sixth = Period (5, 3, listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
-val periods = listOf(octave, tritave, fifth, pentave, tenth, sixth)
-//val primeFactors = FactorScale(primes.map{it.toFraction(1, octave).factor()})
+val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth)
+val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 14, 11 to -11, 13 to -4),
         mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 11, 11 to 14, 13 to 7), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),
