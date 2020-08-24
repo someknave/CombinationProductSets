@@ -25,25 +25,26 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
 }
 
 
-open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = generators.size){
+open class Name(val generators: List<Int>, val deg: Int = 1, val order:Int = generators.size, val period: Period = octave){
     override fun toString(): String {
-        return "$generators($deg|$order)"
+        return if (period == octave) {"$generators($deg|$order)"}
+        else {"$generators($deg|$order) Period:${period.name}"}
     }
     fun nameToKey():Int {
         var key = deg.shl(24)
         for (i in generators) {
-            val pow = factors.indexOf(i)
+            val pow = period.factors.indexOf(i)
             if(pow == -1) {throw IllegalArgumentException("Invalid name passed to nameToKey")}
             key+= 1.shl(pow)
         }
         return key
     }
     fun cps(inverse: Boolean = false, degree: Int = deg): Scale{
-        val notes = cpsInner(generators, degree, 0, inverse= inverse)
-        return Scale(notes.sortedBy { it.num.toFloat() / it.div })
+        val notes = cpsInner(generators, degree, 0, inverse= inverse, period=period)
+        return Scale(notes.sortedBy { it.toFloat() })
     }
 }
-class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
+class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size, period: Period = octave,
               val greek: String = greekName(order.nCk(deg))?:"WTFany") :
         Name(generators, deg, generators.size){
     override fun toString(): String{
@@ -52,7 +53,7 @@ class CPSName(generators: List<Int>, deg: Int = 2, order: Int = generators.size,
 
 }
 
-class Scale(val notes: List<Fraction>) {
+class Scale(val notes: List<Fraction>, val period: Period = octave) {
     val intervals: List<List<Fraction>> by lazy {intervalsBySteps(notes)}
     override fun toString(): String {
         return notes.toString()
@@ -81,7 +82,7 @@ class Scale(val notes: List<Fraction>) {
         val size = notes.size
         return notes
                 .mapIndexed{index, frac ->  frac.invertFraction() * notes[(n + index) % size]}
-                .sortedBy { it.num.toFloat() / it.div }.distinct()
+                .sortedBy { it.toFloat()}.distinct()
     }
     fun intervalsBySteps(notes: List<Fraction>): List<List<Fraction>>{
         val size = notes.size
@@ -119,7 +120,7 @@ class Scale(val notes: List<Fraction>) {
 
 
 
-class Fraction(var num:Int = 1, var div:Int = 1) {
+class Fraction(var num:Int = 1, var div:Int = 1, private val period: Period= octave) {
     override fun toString(): String {
         return "$num/$div"
     }
@@ -128,37 +129,38 @@ class Fraction(var num:Int = 1, var div:Int = 1) {
     }
     override fun equals(other: Any?): Boolean {
         if (other !is Fraction) {return false}
-        return (num == other.num) and (div == other.div)
+        return (num == other.num) and (div == other.div) and (period == other.period)
+    }
+    fun toFloat():Float{
+        return num.toFloat()/div
     }
     operator fun times(other: Any?): Fraction {
         if (other is Int) {
-            return (other * num).toFraction(div)
+            return (other * num).toFraction(div, period)
         }
         if (other is Fraction) {
-            return (num * other.num).toFraction( div * other.div)
+            return (num * other.num).toFraction( div * other.div, period)
         }
-        return Fraction(0, 0)
+        return Fraction(0, 0, period)
     }
     operator fun div(other: Any?): Fraction{
         if (other is Int) {
-            return num.toFraction(other*div)
+            return num.toFraction(other*div, period)
         }
         if (other is Fraction) {
-            return (num *other.div).toFraction(div*other.num)
+            return (num *other.div).toFraction(div*other.num, period)
         }
         return Fraction(0, 0)
     }
     fun invertFraction(): Fraction{
-        return div.toFraction(num)
+        return div.toFraction(num, period)
     }
     operator fun compareTo(other: Any?): Int {
         if (other is Fraction) {
-            val fra1 = (num.toFloat()/div)
-            val fra2 = (other.num.toFloat()/other.div)
-            return  fra1.compareTo(fra2)
+            return  this.toFloat().compareTo(other.toFloat())
         }
         if (other is Int) {return compareTo(other.toFraction())}
-        if (other is Float) {(num.toFloat()/div).compareTo(other)}
+        if (other is Float) {return this.toFloat().compareTo(other)}
         throw IllegalArgumentException("Float, Int or Fraction required")
     }
     fun factor(limit:Int = 10): FactorNote{
@@ -225,11 +227,11 @@ class FactorScale(val notes:List<FactorNote>) {
     override fun toString(): String {
         return "$notes"
     }
-    fun map(interval: FactorNote, period: FactorNote = octave):IntervalMap{
+    fun map(interval: FactorNote, period: Period = octave):IntervalMap{
         val facMap = mutableMapOf<FactorNote, FactorNote>()
         for (note in notes) {
             val note2 = note.add(interval)
-            val note3 = note2.difference(period)
+            val note3 = note2.difference(period.name.factor())
             if (note2 in notes) {
                 facMap.put(note, note2 )
             }
@@ -263,5 +265,25 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     }
 }
 
+class Period(val name: Fraction, val factors: List<Int>) {
+
+}
+class XYMap(val mapX: Map<Int, Int>, val mapY: Map<Int, Int>,val period: Period = octave) {
+
+}
+class XYCoordinates(val x: Int, val y:Int){
+
+}
+class XYLines(val fac:Int, val line: XYCoordinates,
+              val starts: List<XYCoordinates>,
+              val xyMap: XYMap = wilsonXYMap){
+
+}
+class XYStructure(val lines: List<XYLines>, val points: List<XYCoordinates>, val structure: ScaleStructure)
 
 
+class Highlight (val structure: XYStructure, val colour: String, val outline: Boolean = false)
+
+class PictureInput (val structure: XYStructure,
+                    val colour: String = "Black",
+                    val highlights: List<Highlight> = emptyList())

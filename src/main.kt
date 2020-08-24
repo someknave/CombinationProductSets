@@ -1,6 +1,7 @@
 package org.myprojects.hexany
 
 import java.math.BigInteger
+import kotlin.math.log
 
 //import
 
@@ -9,22 +10,24 @@ fun main() {
 }
 
 fun modulateCPS(pair: CPSPair): Modulation {                //I have developed a new form of modulation but the margins of this
-    val mediantCode = pair.mediant.key % 1.shl(24)  //code are too small to contain it. Please see Readme.md for theory.
-    val flankCode = pair.flank.key % 1.shl(24)      //First this function takes the binary keys of each CPS and zeroes
+    val period = pair.mediant.cpsName.period
+    val mediantCode = pair.mediant.key.getFactors()  //code are too small to contain it. Please see Readme.md for theory.
+    val flankCode = pair.flank.key.getFactors()       //First this function takes the binary keys of each CPS and zeroes
     val medDeg = pair.mediant.cpsName.deg                   //the first 8 bits that are used to store the degree information.
     val flankDeg = pair.flank.cpsName.deg                   //The degree information is separately stored in the "medDeg" and
     val intersect = (mediantCode and flankCode)             //"flankDeg" values. The intersection between the generator sets
-    val medFreedom = makeCPSName(mediantCode - intersect)   //is calculated by "bitwise and" on the binary codes. This
-    val flankFreedom = makeCPSName(flankCode - intersect)   //intersection is removed from the mediant and flank codes
+    val medFreedom = makeCPSName(mediantCode - intersect, period = period)   //is calculated by "bitwise and" on the binary codes. This
+    val flankFreedom = makeCPSName(flankCode - intersect, period = period)   //intersection is removed from the mediant and flank codes
     val modulations = modulationsInner(intersect,               //to get the "Freedom", the generators outside the intersection.
-            medDeg, medFreedom, flankDeg, flankFreedom)         //A separate  inner function takes these factors and generates a list of
+            medDeg, medFreedom, flankDeg, flankFreedom, period)         //A separate  inner function takes these factors and generates a list of
     return Modulation(pair,                                     //modulations (transpositions) to be applied to the entire Flank CPS.
             pair.flank.scale.listProduct(modulations))
 }
 
 fun modulationsInner(intersect:Int,                         //This is the inner function that takes in the freedoms degrees and intersections
                      medDeg:Int, medFreedom:CPSName,        //and returns a list of modulations (transpositions) to apply to the Flank.
-                     flankDeg:Int, flankFreedom:CPSName)    //A variable modulations is created as an empty scale. as modulations are generated they will be added to this scale.
+                     flankDeg:Int, flankFreedom:CPSName,
+                     period: Period = octave)    //A variable modulations is created as an empty scale. as modulations are generated they will be added to this scale.
         : Scale {                                           //Lets call the number of generators in the intersection k. For every possible degree "i" in the
     var modulations = Scale(emptyList())                    //intersection, (between 0 and k) we take the CPS of the medFreedom with degree
     for (i in 0..intersect.countBits()) {                    //"medDeg" - i, and the same with the inverse CPS of the flankFreedom. Both degrees require
@@ -35,9 +38,10 @@ fun modulationsInner(intersect:Int,                         //This is the inner 
     return modulations                                      //is added to the scale of modulations. Once the for loop is complete the resulting scale
 }                                                            //of modulations is returned.
 
-fun multiModulateCPS(pair: CPSPair): Modulation{                //This is a generalised version of the multi modulation.
-    val mediantCode = pair.mediant.key % 1.shl(24)      //it performs a number of flanking modulations on the same
-    val flankCode = pair.flank.key % 1.shl(24)          //mediant. The multiple flanking CPSs all share the same
+fun multiModulateCPS(pair: CPSPair): Modulation{
+    val period = pair.mediant.cpsName.period                //This is a generalised version of the multi modulation.
+    val mediantCode = pair.mediant.key.getFactors()      //it performs a number of flanking modulations on the same
+    val flankCode = pair.flank.key.getFactors()          //mediant. The multiple flanking CPSs all share the same
     val medDeg = pair.mediant.cpsName.deg                       //degree and the same Freedom (independent generators) but
     val flankDeg = pair.flank.cpsName.deg                       //the intersection varies.
     val intersect = (mediantCode and flankCode)                 //Code for the first few lines is similar to the regular
@@ -51,7 +55,7 @@ fun multiModulateCPS(pair: CPSPair): Modulation{                //This is a gene
     for (key in keys) {                                         //The scale variable is initialised as an empty Scale, and then
         val modulations = modulationsInner(key,  medDeg,        //the different intersects are iterated over each generating a
                 makeCPSName(mediantCode-key),               //Scale of modulations, and a corresponding Flanking CPS.
-                flankDeg, flankFreedom)                         //The tensor product of the Flanking scale and the modulations
+                flankDeg, flankFreedom, period)                         //The tensor product of the Flanking scale and the modulations
         val modifiedFlank = makeCPSName(key+flankFreCode)   //forms a new scale that is added to the accumulator scale.
                 .cps(false, flankDeg)                     //after iteration the scale is returned inside a modulation object
         scale = scale
@@ -81,54 +85,57 @@ fun makeCPS(key:Int): CPSXany {
     return CPSXany(name, key, notes)
 }
 
-fun makeCPSName(key:Int, order:Int = 14): CPSName{
+fun makeCPSName(key:Int, limit:Int = 14, period: Period = periods[key.getPeriod()]): CPSName{
     val name = mutableListOf<Int>()
-    for (factor in 0 until order) {
-        if (key.nthBit(factor) ==
-                1) {
-            name.add(factors[factor])
+    for (factor in 0 until limit) {
+        if (key.nthBit(factor) == 1) {
+            name.add(period.factors[factor])
         }
     }
-    return CPSName(name, key.shr(24))
+    return CPSName(name, key.getDeg(),name.size ,period)
 }
 
-fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4): List<Int> {
-    val keys = (0 until 1.shl(limit)).toList().map{deg.shl(24) + it}
+fun generateKeys(limit:Int = 14, deg: Int = 2 , order:Int = 4, period: Period = octave): List<Int> {
+    val periodIndex = periods.indexOf(period).coerceAtLeast(0)
+    val perAndDeg = periodIndex.shl(28) + deg.shl(24)
+    val keys = (0 until 1.shl(limit)).toList().map{perAndDeg + it}
     return keys.filter { (it and 16777215).countBits() == order }
 }
 
-fun genAllKeysTo(limit: Int = 14, deg: Int = 3, order: Int=6): List<Int> {
+fun genAllKeysTo(limit: Int = 14, deg: Int = 3, order: Int=6, period: Period = octave): List<Int> {
     val keyAcc = mutableListOf(0)
     for (i in 1..order){
         for (j in 1..deg.coerceAtMost(i)) {
-            keyAcc.addAll(generateKeys(limit, j, i))
+            keyAcc.addAll(generateKeys(limit, j, i, period))
         }
     }
     return keyAcc.toList()
 }
 
-fun cpsInner(generators: List<Int>, deg:Int, start: Int, size: Int = generators.size, inverse: Boolean = false): List<Fraction> {
-                                                    //Inner recursive function for creating Combination Product Sets. This function returns
+fun cpsInner(generators: List<Int>, deg:Int,                //Inner recursive function for creating Combination Product Sets. This function returns
+             start: Int, size: Int = generators.size,
+             inverse: Boolean = false,
+             period: Period = octave): List<Fraction> {
     if (deg !in 0..(size - start)) {return emptyList()}  //a list of fractions that are each the product of "deg" many generators.
-    if (deg == 0) { return listOf(1.toFraction())}      //First it checks for invalid inputs and returns an empty list in those cases.
+    if (deg == 0) { return listOf(1.toFraction(1,period))}      //First it checks for invalid inputs and returns an empty list in those cases.
     if (deg == 1) {                                     //If degree == 0 it returns list containing just the fraction 1/1.
         if (inverse) {                                  //True Base case degree==1 returns a list of fractions. This list contains elements
-             return generators.subList(start, size).map{1.toFraction(it)} //from the generator list converted into fractions. These fractions
+             return generators.subList(start, size).map{1.toFraction(it, period)} //from the generator list converted into fractions. These fractions
         }                                                               //are inverted if inverse is true. The sublist of generators include
-        return generators.subList(start, size).map{it.toFraction()}     //all generators from index "start" to the last generator.
+        return generators.subList(start, size).map{it.toFraction(1, period)}     //all generators from index "start" to the last generator.
     }                                                                               //For higher degree cases, recursion is needed.
     val notes = mutableListOf<Fraction>()                                           //"notes" is initiated as an empty mutable list of Fractions.
     if (!inverse){                                                                  //The following section is split in to two nearly identical
         for (i in start..(size-deg)) {                                              //cases. If inversion is false, it creates a for loop
             val tempList = cpsInner(generators, deg-1, i+1, size, inverse) //that iterates over the generator list starting from index
-                    .map { it * generators[i].toFraction() }                    //"start" and going to "size - deg" this leaves just enough
+                    .map { it * generators[i].toFraction(1, period) }                    //"start" and going to "size - deg" this leaves just enough
             notes.addAll(tempList)                                              //indexes for deeper levels of the recursion algorithm to
         }                                                                       //return with lists of Fractions.
         return notes                                                            //Within the For loop sets the generator to the "i"th index
     }                                                                           //and calls another instance of cpsInner. This new instance has
     for (i in start..(size-deg)) {                                              //"deg-1" degrees as a generator has already been set. it also has
         val tempList = cpsInner(generators, deg-1, i+1, size, inverse)  //a start of "i+1", this ensures that we don't produce the same combination
-                .map { it * 1.toFraction(generators[i]) }                   //of generators twice. Each Fraction in the output is multiplied by the
+                .map { it * 1.toFraction(generators[i], period) }                   //of generators twice. Each Fraction in the output is multiplied by the
         notes.addAll(tempList)                                              //current generator "i" and then this list is appended to the "notes" list
     }                                                                   //once the for loop is completed it returns the list "notes".
     return notes    //The only difference with the second case is that the List of notes is multiplied by the inversion of the generator.
@@ -197,34 +204,73 @@ fun Int.exp(other:Int):Int{     //integer power function. Does not allow fractio
     return acc
 }
 
-fun List<Int>.toFraction():Fraction{
+fun List<Int>.toFraction(period: Period = octave):Fraction{
     val num = this.zip(primes) {a:Int, b:Int -> b.exp(0.coerceAtLeast(a))}.fold(1){acc, i -> acc*i}
     val div = this.zip(primes) {a:Int, b:Int -> b.exp(0.coerceAtLeast(-a))}.fold(1){acc, i -> acc*i}
-    return num.toFraction(div)
+    return num.toFraction(div, period)
 }
 
-fun Int.toFraction(other:Int = 1):Fraction{                                  //Integer to fraction converter can take divisor as an argument.
+fun Int.getDeg():Int{
+    return this.shr(24) and 15
+}
+
+fun Int.getPeriod():Int{
+    return  this.shr(28)
+}
+fun Int.getFactors():Int{
+    return this and 16777215
+}
+
+fun Int.toFraction(other:Int = 1, period: Period = octave):Fraction{                                  //Integer to fraction converter can take divisor as an argument.
     if ((this == 0) or (other == 0)) {return Fraction(0, 0)}        //for the purpose of tuning theory 0 is nonsensical as
     var num = this                                                           //a numerator or as a divisor so either option is sent 0/0.
     var div = other                                //numerator and divisor are initialised from input, these are variables as they will
-    if (num>=div) {                                 //be modified in the following steps.
-        div *= (num / div).leading1()               //In tuning theory factors of 2 are generally seen as irrelevant as they only change
-    } else {                                        //the octave, not the note name. This section multiplies either the numerator or
-        num *= (div/num).leading1().shl(1)  //the divisor by a power of 2 to put the fraction in the range between 1 and 2.
-    }                                               //This process ensures that all notes will be within the same octave.
+    if (period == octave) {
+        if (num >= div) {                                 //be modified in the following steps.
+            div *= (num / div).leading1()               //In tuning theory factors of 2 are generally seen as irrelevant as they only change
+        } else {                                        //the octave, not the note name. This section multiplies either the numerator or
+            num *= (div / num).leading1().shl(1)  //the divisor by a power of 2 to put the fraction in the range between 1 and 2.
+        }
+    } else {
+        val order = log(num.toFloat()/div,
+                period.name.toFloat()).toInt()
+        if (order < 1){
+            num *= period.name.num.exp(-order)
+            div *= period.name.div.exp(-order)
+        } else {
+            num *= period.name.div.exp(order)
+            div *= period.name.num.exp(order)
+        }
+    }                                                //This process ensures that all notes will be within the same octave.
     val gcd = num.gcd(div)                          //Finally both numerator and divisor are divided by the greatest common divisor
     num /= gcd                                      //To put them in the simplest form. This ensures that equal fractions will look the same.
     div /= gcd                                      //The first step removed 0s so we don't have to worry about divide by zero faults.
-    return Fraction(num, div)                       //Simplest form of Fraction returned.
+    return Fraction(num, div, period)                       //Simplest form of Fraction returned.
 }
 
 val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
-val factors = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27)     //functions produce. could be expanded for higher prime limit.
-val primeFactors = FactorScale(listOf(3, 5, 7, 11, 13, 17, 19, 23, 29, 31).map{it.toFraction().factor()})
-val octave = Fraction(2, 1).factor()
+                                                                              //functions produce. could be expanded for higher prime limit.
+val primeFactors = FactorScale(primes.map{it.toFraction().factor()})
+val octave = Period (Fraction(2, 1), listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27))
+val tritave = Period (Fraction(3, 1), listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
+val fifth = Period (Fraction(3, 2), listOf(1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16, 17, 19, 20))
+val pentave = Period (Fraction(5, 1), listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
+val tenth = Period (Fraction(5, 2), listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
+val sixth = Period (Fraction(5, 3), listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
+val periods = listOf(octave, tritave, fifth, pentave, tenth, sixth)
+val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 14, 11 to -11, 13 to -4),
+        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 11, 11 to 14, 13 to 7), octave)
+val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),
+        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 20, 11 to 32, 13 to 7), octave)
+val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 91, 11 to -79, 13 to -66, 17 to -16, 19 to -10),
+        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 15, 11 to 23, 13 to 53, 17 to 48, 19 to 37), octave)
+val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -22, 5 to 36, 7 to 94, 11 to 72, 13 to 36),
+        mapOf(2 to 0, 3 to 68, 5 to 111, 7 to 68, 11 to 0, 13 to 50), octave)
+val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -58, 5 to 0, 7 to 58, 11 to 36, 13 to -36),
+        mapOf(2 to 0, 3 to 19, 5 to 61, 7 to 19, 11 to -50, 13 to -50), octave)
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
-        6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendexa", 12 to "Dodexa",
-        13 to "Triskaidexa", 14 to "Tetradexa", 15 to "Pendexa", 16 to "Hekkaideka", 17 to "Heptadeka",
+        6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendexa", 12 to "Dodeka",
+        13 to "Triskaideka", 14 to "Tetradexa", 15 to "Pendexa", 16 to "Hekkaideka", 17 to "Heptadeka",
         18 to "Oktadeka", 19 to "Enekaideka", 20 to "Eikosa" ,-20 to "Eikosi", -1 to "Heiskai", -2 to "kaiDie",
         -3 to "kaiTria", -4 to "kaiTetra", -5 to "kaiPenta",-6 to "kaiHexa", -7 to "kaiHepta", -8 to "kaiOkta",
         -9 to "kaiEnnea", 30 to "Trikonta", 40 to "Tessarakonta", 50 to "Pentekonta", 60 to "Hexekonta",
@@ -249,4 +295,3 @@ fun greekName(n: Int): String? {            //this is a deliberately idiosyncrat
     name +=  greek[if(remainder<30) -20 else remainder-units]       //end in 1 or 0 are returned for similar reasons to the hundreds case.
     return name + greek[- units] + "ny"              //numbers in the 20s have a different form,the greek form of the tens is then added.
 }                                                    //and finally the units and suffix are added and the name is returned.
-
