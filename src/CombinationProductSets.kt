@@ -22,6 +22,10 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
     fun cpsModulation(mediant: CPSXany):Modulation{
         return modulateCPS(CPSPair(mediant, this))
     }
+    fun toXYStructure(xyMap: XYMap, intervals: FactorScale = primeFactorScale):XYStructure {
+        val struct = scale.toFactorScale().makeStructure(intervals)
+        return struct.toXYStructure(xyMap, cpsName)
+    }
 }
 
 
@@ -221,14 +225,17 @@ class FactorNote(val name:Fraction, val factors:List<Int>){
         val difFactor = this.factors.zip(other.factors) { a:Int, b:Int -> a-b}
         return FactorNote(difFactor.toFraction(), difFactor)
     }
-
     override fun hashCode(): Int {
         return name.hashCode()
     }
-
     override fun equals(other: Any?): Boolean {
         if(other !is FactorNote) {return false}
         return (name == other.name)
+    }
+    fun toXYCoord(xyMap: XYMap = wilsonXYMap):XYCoordinates {
+        val x = factors.zip(primes){ fac:Int, prime:Int -> (xyMap.mapX[prime]?:0) * fac}
+        val y = factors.zip(primes){ fac:Int, prime:Int -> (xyMap.mapY[prime]?:0) * fac}
+        return XYCoordinates(x.sum(), y.sum())
     }
 }
 
@@ -236,7 +243,7 @@ class FactorScale(val notes:List<FactorNote>) {
     override fun toString(): String {
         return "$notes"
     }
-    fun map(interval: FactorNote, period: Period = octave):IntervalMap{
+    fun intMap(interval: FactorNote, period: Period = octave):IntervalMap{
         val facMap = mutableMapOf<FactorNote, FactorNote>()
         for (note in notes) {
             val note2 = note.add(interval)
@@ -253,7 +260,7 @@ class FactorScale(val notes:List<FactorNote>) {
     fun makeStructure(intervals:FactorScale = primeFactorScale):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
         for (int in intervals.notes.filter{it != Fraction(1, 1).factor()}) {
-            val intMap = this.map(int)
+            val intMap = this.intMap(int)
             if (intMap.map.isNotEmpty()) {
                 maps.add(intMap)
             }
@@ -272,6 +279,11 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     override fun toString(): String {
         return "$scale\n$maps"
     }
+    fun toXYStructure(xyMap:XYMap = wilsonXYMap, name: Name = Name(emptyList(), 0, 0)):XYStructure {
+        val points = scale.notes.map { it.toXYCoord(xyMap) }
+        val lines = maps.map { it.map.map{XYLines(it.key.toXYCoord(xyMap), it.value.toXYCoord(xyMap))} }
+        return XYStructure(lines.flatten(), points, this, xyMap, name)
+    }
 }
 
 class Period(val num: Int, val div: Int, val factors: List<Int>) {
@@ -284,14 +296,22 @@ class XYMap(val mapX: Map<Int, Int>, val mapY: Map<Int, Int>,val period: Period 
 
 }
 class XYCoordinates(val x: Int, val y:Int){
-
+    override fun toString(): String {
+        return "($x,$y)"
+    }
 }
-class XYLines(val fac:Int, val line: XYCoordinates,
-              val starts: List<XYCoordinates>,
-              val xyMap: XYMap = wilsonXYMap){
-
+class XYLines(val start:XYCoordinates, val end:XYCoordinates){
+    override fun toString(): String {
+        return "$start-$end"
+    }
 }
-class XYStructure(val lines: List<XYLines>, val points: List<XYCoordinates>, val structure: ScaleStructure)
+class XYStructure(val lines: List<XYLines>, val points: List<XYCoordinates>,
+                  val structure: ScaleStructure, val xyMap: XYMap = wilsonXYMap,
+                  val name:Name = Name(emptyList(),0,0)) {
+    override fun toString(): String {
+        return "$name: $points\n$lines"
+    }
+}
 
 
 class Highlight (val structure: XYStructure, val colour: String, val outline: Boolean = false)

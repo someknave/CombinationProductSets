@@ -6,9 +6,8 @@ import kotlin.math.log
 //import
 
 fun main() {
-    val scale = CPSName(listOf(1, 3, 5, 7)).cps()
-    val facScale = scale.toFactorScale()
-    print(facScale.makeStructure())
+    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11, 13),3))
+    print(scale.toXYStructure(distancePreserveXYMap).lines.size)
 
 
 }
