@@ -20,6 +20,7 @@ sourceSets {
 dependencies {
     compile 'junit:junit:4.12'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation 'no.tornado:tornadofx:1.7.17'
 }
 compileKotlin {
     kotlinOptions {

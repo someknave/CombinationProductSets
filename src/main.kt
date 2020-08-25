@@ -6,7 +6,7 @@ import kotlin.math.log
 //import
 
 fun main() {
-    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11, 13),3))
+    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2))
     print(scale.toXYStructure(distancePreserveXYMap).lines.size)
 
 
