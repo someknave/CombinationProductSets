@@ -10,7 +10,7 @@ At this point the underlying data structures are quite solid. but I have ideas a
 
 The program can produce CPSs of any order and degree with any odd generators between 1 and 27. these end points are semi arbitry and could be easily changed. 
 
-The program can also do modulations and stellations of these structures and make Parch style tonality diamonds as well.
+The program can also do modulations and stellations of these structures and make Partch style tonality diamonds as well.
 
 The write to csv functionality needs to be updated to the new versions of the datastructures and generalised so a separate .kt file isn't needed for each scale type.
 
