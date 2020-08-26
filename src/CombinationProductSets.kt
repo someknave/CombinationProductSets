@@ -447,14 +447,16 @@ class RawDiagram (val structure: XYStructure,
         val outpoints = mutableListOf<DiagramPoint>()
         val dlines = mutableListOf<DiagramLine>()
         for (point in points){
-            val outCandP = point.getCandP(this, true)
-            val inCandP = point.getCandP(this, false)
             if (point in structure.points) {
+                val outCandP = point.getCandP(this, true)
+                val inCandP = point.getCandP(this, false)
                 dpoints.add(point.toDiagramPoint(rShift,
                         dShift, 8, inCandP.c, inCandP.p))
                 outpoints.add(point.toDiagramPoint(rShift,
                         dShift, 12, outCandP.c, outCandP.p))
             } else {
+                val outCandP = point.getCandP(this, true, true)
+                val inCandP = point.getCandP(this, false, true)
                 val inCol = if (inCandP.p == 0) {outCandP.c
                 } else {inCandP.c}
                 val outCol = if (outCandP.p == 0) {inCandP.c
@@ -468,11 +470,12 @@ class RawDiagram (val structure: XYStructure,
             }
         }
         for (line in lines){
-            val cAndP = line.getCandP(this)
             if (line in structure.lines) {
+                val cAndP = line.getCandP(this)
                 dlines.add(line.toDiagramLine(rShift,
                         dShift, 3.5f, cAndP.c, cAndP.p))
             } else {
+                val cAndP = line.getCandP(this, true)
                 dlines.add(line.toDiagramLine(rShift, dShift, 2.5f,
                         Color(cAndP.c.rgb + 100.shl(24),
                                 true), cAndP.p))

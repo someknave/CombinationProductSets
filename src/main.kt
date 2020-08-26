@@ -276,16 +276,20 @@ val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth
 val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val noThreeList = listOf(2, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27)
 val noThreeFactors = Scale(noThreeList.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
-val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 42, 11 to -37, 13 to -11),
-        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 19), octave)
-val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),
-        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 20, 11 to 32, 13 to 7), octave)
-val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 91, 11 to -79, 13 to -66, 17 to -16, 19 to -10),
-        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 15, 11 to 23, 13 to 53, 17 to 48, 19 to 37), octave)
-val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -22, 5 to 36, 7 to 94, 11 to 72, 13 to 36),
-        mapOf(2 to 0, 3 to 68, 5 to 111, 7 to 68, 11 to 0, 13 to 50), octave)
-val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -58, 5 to 0, 7 to 58, 11 to 36, 13 to -36),
-        mapOf(2 to 0, 3 to 19, 5 to 61, 7 to 19, 11 to -50, 13 to -50), octave)
+val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 43, 11 to -48, 13 to -9),
+        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 26), octave)
+val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 66, 11 to -71, 13 to -42),
+        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 60, 11 to 96, 13 to 21), octave)
+val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 273, 11 to -237, 13 to -198, 17 to -48, 19 to -30),
+        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 45, 11 to 69, 13 to 159, 17 to 144, 19 to 111), octave)
+val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -66, 5 to 108, 7 to 282, 11 to 216, 13 to 108),
+        mapOf(2 to 0, 3 to 204, 5 to 333, 7 to 204, 11 to 0, 13 to 150), octave)
+val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),
+        mapOf(2 to 0, 3 to 57, 5 to 183, 7 to 57, 11 to -150, 13 to -150), octave)
+val pentaFact = Scale(listOf(3.toFraction(1), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 11.toFraction(1))).toFactorScale()
+val pentaFactb = Scale(listOf(13.toFraction(1), 13.toFraction(3), 13.toFraction(5), 13.toFraction(7), 13.toFraction(11))).toFactorScale()
+val penta2Fact = Scale(listOf(13.toFraction(3), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 13.toFraction(11))).toFactorScale()
+val penta2Factb = Scale(listOf(3.toFraction(1), 5.toFraction(1), 7.toFraction(1), 11.toFraction(1), 13.toFraction(1))).toFactorScale()
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendexa", 12 to "Dodeka",
         13 to "Triskaideka", 14 to "Tetradexa", 15 to "Pendexa", 16 to "Hekkaideka", 17 to "Heptadeka",
