@@ -1,52 +1,54 @@
 package org.myprojects.hexany
-/*
-import java.awt.*
-import javax.swing.*
 
-class KotlinSwingCloseButtonEx(title: String) : JFrame() {
+import java.awt.*
+import javax.swing.JFrame
+import javax.swing.JPanel
+
+class DiagramScreen(title: String, xSize:Int, ySize:Int) : JFrame() {
 
     init {
-        createUI(title)
+        createUI(title, xSize, ySize)
     }
 
-    private fun createUI(title: String) {
+    private fun createUI(title: String, xSize:Int, ySize:Int) {
 
         setTitle(title)
 
-        val closeBtn = JButton("Close")
+        val diagram = Diagram(xSize, ySize, DiagramLine(14, 154, 295,
+                20, 3.3f, Color.CYAN, 0))
+        add(diagram)
 
-        closeBtn.addActionListener { System.exit(0) }
-
-        createLayout(closeBtn)
-
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-        setSize(300, 200)
+        defaultCloseOperation = EXIT_ON_CLOSE
+        setSize(xSize+17, ySize+40)
         setLocationRelativeTo(null)
     }
 
 
-    private fun createLayout(vararg arg: JComponent) {
 
-        val gl = GroupLayout(contentPane)
-        contentPane.layout = gl
+}
 
-        gl.autoCreateContainerGaps = true
+class Diagram(val xSize:Int, val ySize:Int, val line: DiagramLine):JPanel(){
+    private fun doDrawing(g:Graphics){
+        val g2d:Graphics2D = g as Graphics2D
+        val bs1 = BasicStroke(2f)
+        g2d.drawLine(0, 0, xSize, ySize)
+        g2d.stroke = bs1
+        g2d.drawLine(0, ySize, xSize, 0)
+        g2d.stroke = BasicStroke(line.width)
+        g2d.color = line.colour
+        g2d.drawLine(line.x1, line.y1, line.x2, line.y2)
+    }
 
-        gl.setHorizontalGroup(gl.createSequentialGroup()
-                .addComponent(arg[0])
-        )
-
-        gl.setVerticalGroup(gl.createSequentialGroup()
-                .addComponent(arg[0])
-        )
-
-        pack()
+    override fun paintComponent(g: Graphics) {
+        super.paintComponent(g)
+        doDrawing(g)
     }
 }
 
 private fun createAndShowGUI() {
 
-    val frame = KotlinSwingCloseButtonEx("Close button")
+
+    val frame = DiagramScreen("Canvas Size", 400, 250)
     frame.isVisible = true
 }
 
@@ -54,5 +56,5 @@ fun main() {
     EventQueue.invokeLater(::createAndShowGUI)
 }
 
-*/
+
 

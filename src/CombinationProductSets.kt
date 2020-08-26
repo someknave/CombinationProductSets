@@ -317,20 +317,22 @@ class XYCoordinates(val x: Int, val y:Int){
     override fun hashCode(): Int {
         return (x.shl(8) + (y % 256))
     }
-    fun getColour(diag:RawDiagram, outline: Boolean = false):Color {
-        for (highlight in diag.highlights) {
-            if ((highlight.outline == outline)
-                    and (this in highlight.structure.points)) {
-                return highlight.colour
+    fun getCandP(diag:RawDiagram, outline: Boolean = false):CAndP {
+        val size = diag.highlights.size
+        for (i in 0 until size) {
+            val hlight = diag.highlights[i]
+            if ((hlight.outline == outline)
+                    and (this in hlight.structure.points)) {
+                return CAndP(hlight.colour, size - i)
             }
         }
-        return diag.colour
+        return CAndP(diag.colour, 0)
     }
     fun toDiagramPoint(rShift:Int = 30, dShift:Int = 40,
-                       width: Int=6, colour: Color=BLACK):DiagramPoint{
-        val newx = (rShift + x).toFloat()
-        val newy = (dShift - y).toFloat()
-        return DiagramPoint(newx, newy, width, colour)
+                       width: Int=6, colour: Color=BLACK, priority: Int=0):DiagramPoint{
+        val newx = (rShift + x)
+        val newy = (dShift - y)
+        return DiagramPoint(newx, newy, width.toFloat(), colour, priority)
     }
 }
 class XYLine(val start:XYCoordinates, val end:XYCoordinates){
@@ -347,22 +349,24 @@ class XYLine(val start:XYCoordinates, val end:XYCoordinates){
             (start == other.start) and (end == other.end)
         } else {false}
     }
-    fun getColour(diag:RawDiagram):Color {
-        for (highlight in diag.highlights) {
+    fun getCandP(diag:RawDiagram):CAndP {
+        val size = diag.highlights.size
+        for (i in 0 until size) {
+            val highlight = diag.highlights[i]
             if ((highlight.outline)
                     and (this in highlight.structure.lines)) {
-                return highlight.colour
+                return CAndP( highlight.colour, size - i)
             }
         }
-        return diag.colour
+        return CAndP( diag.colour, 0)
     }
     fun toDiagramLine(rShift:Int = 30, dShift:Int = 40,
-                      width: Int=2, colour: Color=BLACK):DiagramLine{
-        val x1 = (rShift + start.x).toFloat()
-        val x2 = (rShift + end.x).toFloat()
-        val y1 = (dShift - start.y).toFloat()
-        val y2 = (dShift - end.y).toFloat()
-        return DiagramLine(x1, y1, x2, y2, width, colour)
+                      width: Int=2, colour: Color=BLACK, priority: Int = 0):DiagramLine{
+        val x1 = (rShift + start.x)
+        val x2 = (rShift + end.x)
+        val y1 = (dShift - start.y)
+        val y2 = (dShift - end.y)
+        return DiagramLine(x1, y1, x2, y2, width.toFloat(), colour, priority)
     }
 }
 class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
@@ -428,40 +432,50 @@ class RawDiagram (val structure: XYStructure,
         val outpoints = mutableListOf<DiagramPoint>()
         val dlines = mutableListOf<DiagramLine>()
         for (point in points){
-            val outCol = point.getColour(this, true)
-            val inCol = point.getColour(this, false)
+            val outCandP = point.getCandP(this, true)
+            val inCandP = point.getCandP(this, false)
             if (point in structure.points) {
-                dpoints.add(point.toDiagramPoint(rShift, dShift, 4, inCol))
-                outpoints.add(point.toDiagramPoint(rShift, dShift, 6, outCol))
+                dpoints.add(point.toDiagramPoint(rShift,
+                        dShift, 4, inCandP.c, inCandP.p))
+                outpoints.add(point.toDiagramPoint(rShift,
+                        dShift, 6, outCandP.c, outCandP.p))
             } else {
                 dpoints.add(point.toDiagramPoint(rShift, dShift, 3,
-                        Color(inCol.rgb + 90.shl(24), true)))
+                        Color(inCandP.c.rgb + 90.shl(24),
+                                true), inCandP.p))
                 outpoints.add(point.toDiagramPoint(rShift, dShift, 5,
-                        Color(outCol.rgb + 30.shl(24), true)))
+                        Color(outCandP.c.rgb + 30.shl(24),
+                                true), outCandP.p))
             }
         }
         for (line in lines){
+            val cAndP = line.getCandP(this)
             if (line in structure.lines) {
-                dlines.add(line.toDiagramLine(rShift, dShift, 2,
-                line.getColour(this)))
+                dlines.add(line.toDiagramLine(rShift,
+                        dShift, 2, cAndP.c, cAndP.p))
             } else {
                 dlines.add(line.toDiagramLine(rShift, dShift, 1,
-                        Color(line.getColour(this).rgb + 100.shl(24),
-                                true)))
+                        Color(cAndP.c.rgb + 100.shl(24),
+                                true), cAndP.p))
             }
         }
-        return ProcessedDiagram(canv.width, canv.height, dlines, dpoints, outpoints)
+        return ProcessedDiagram(canv.width, canv.height,
+                dlines.sortedBy { it.priority },
+                dpoints.sortedBy { it.priority },
+                outpoints.sortedBy { it.priority })
     }
 }
 
-class DiagramLine (val x1:Float, val y1:Float, val x2:Float, 
-                   val y2:Float, val width:Int = 2, val colour:Color){
+class DiagramLine (val x1:Int, val y1:Int, val x2:Int,
+                   val y2:Int, val width:Float = 2f,
+                   val colour:Color, val priority:Int){
     override fun toString(): String {
         return "{($x1, $y1) - ($x2, $y2), w:$width, c:$colour}"
     }
 
 }
-class DiagramPoint (val x:Float, val y:Float, val width:Int = 6, val colour:Color){
+class DiagramPoint (val x:Int, val y:Int, val width:Float = 6f,
+                    val colour:Color, val priority: Int){
     override fun toString(): String {
         return "{($x, $y), w:$width, c:$colour}"
     }
@@ -475,5 +489,6 @@ class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
     }
     
 }
+class CAndP (val c:Color, val p:Int){}
 
 
