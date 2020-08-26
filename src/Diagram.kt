@@ -59,8 +59,8 @@ class Diagram(val xSize:Int, val ySize:Int, val diagram: ProcessedDiagram):JPane
 
 
 private fun createAndShowGUI() {
-    val map:XYMap = penta2XYMap
-    val fac:FactorScale = penta2Factb
+    val map:XYMap = separatedMap
+    val fac:FactorScale = primeFactorScale
     val hex1 = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
     val hex2 = CPSXany( CPSName(listOf(1, 5, 11, 13),2))
     val mod = hex1.cpsModulation(hex2).toXYStructure(map, fac)

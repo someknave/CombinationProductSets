@@ -282,6 +282,8 @@ val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 66, 11 to -71, 13 to
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 60, 11 to 96, 13 to 21), octave)
 val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 273, 11 to -237, 13 to -198, 17 to -48, 19 to -30),
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 45, 11 to 69, 13 to 159, 17 to 144, 19 to 111), octave)
+val separatedMap = XYMap(mapOf(2 to 0, 3 to 62, 5 to 0, 7 to -62, 11 to -170, 13 to 230, 17 to -48, 19 to -30),
+        mapOf(2 to 0, 3 to 36, 5 to -72, 7 to 36, 11 to 180, 13 to 210, 17 to 144, 19 to 111), octave)
 val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -66, 5 to 108, 7 to 282, 11 to 216, 13 to 108),
         mapOf(2 to 0, 3 to 204, 5 to 333, 7 to 204, 11 to 0, 13 to 150), octave)
 val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),
