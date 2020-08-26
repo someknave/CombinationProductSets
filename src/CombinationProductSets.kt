@@ -26,7 +26,7 @@ data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
     }
     fun toXYStructure(xyMap: XYMap, intervals: FactorScale = primeFactorScale):XYStructure {
         val struct = scale.toFactorScale().makeStructure(intervals)
-        return struct.toXYStructure(xyMap, cpsName)
+        return struct.toXYStructure(xyMap, listOf(cpsName))
     }
 }
 
@@ -200,6 +200,10 @@ class Modulation(val name:CPSPair, val scale: Scale, val multiMod: Boolean = fal
         return if (multiMod) {"Multiple Modulation $name: ${scale.notes}"}
         else {"$name: ${scale.notes}"}
     }
+    fun toXYStructure(xyMap: XYMap, intervals: FactorScale = primeFactorScale):XYStructure {
+        val struct = scale.toFactorScale().makeStructure(intervals)
+        return struct.toXYStructure(xyMap, listOf(name.mediant.cpsName, name.flank.cpsName))
+    }
 }
 
 
@@ -207,11 +211,19 @@ class Mandala(val core: CPSXany, val stellations: Scale, val fullStellation: Boo
     override fun toString(): String {
         return "${core.cpsName}: ${stellations.notes}"
     }
+    fun toXYStructure(xyMap: XYMap, intervals: FactorScale = primeFactorScale):XYStructure {
+        val struct = stellations.toFactorScale().makeStructure(intervals)
+        return struct.toXYStructure(xyMap, listOf(core.cpsName))
+    }
 }
 
 class Diamond(val name: Name, val key: Int = name.nameToKey(),
               val scale: Scale = name.cps(inverse= false)
                       .listProduct(name.cps(inverse=  true))){
+    fun toXYStructure(xyMap: XYMap, intervals: FactorScale = primeFactorScale):XYStructure {
+        val struct = scale.toFactorScale().makeStructure(intervals)
+        return struct.toXYStructure(xyMap, listOf(name))
+    }
 
 }
 
@@ -281,7 +293,7 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     override fun toString(): String {
         return "$scale\n$maps\n"
     }
-    fun toXYStructure(xyMap:XYMap = wilsonXYMap, name: Name = Name(emptyList(), 0, 0)):XYStructure {
+    fun toXYStructure(xyMap:XYMap = wilsonXYMap, name: List<Name> = emptyList()):XYStructure {
         val points = scale.notes.map { it.toXYCoord(xyMap) }
         val lines = maps.map { it.map.map{XYLine(it.key.toXYCoord(xyMap), it.value.toXYCoord(xyMap))} }
         return XYStructure(lines.flatten(), points, this, xyMap, name)
@@ -317,22 +329,24 @@ class XYCoordinates(val x: Int, val y:Int){
     override fun hashCode(): Int {
         return (x.shl(8) + (y % 256))
     }
-    fun getCandP(diag:RawDiagram, outline: Boolean = false):CAndP {
+    fun getCandP(diag:RawDiagram, outline: Boolean = false,
+                 ghost: Boolean = false):CAndP {
         val size = diag.highlights.size
         for (i in 0 until size) {
             val hlight = diag.highlights[i]
             if ((hlight.outline == outline)
-                    and (this in hlight.structure.points)) {
+                    and (this in hlight.structure.points)
+                    and (!hlight.ghost or ghost)) {
                 return CAndP(hlight.colour, size - i)
             }
         }
         return CAndP(diag.colour, 0)
     }
     fun toDiagramPoint(rShift:Int = 30, dShift:Int = 40,
-                       width: Int=6, colour: Color=BLACK, priority: Int=0):DiagramPoint{
+                       width: Int=10, colour: Color=BLACK, priority: Int=0):DiagramPoint{
         val newx = (rShift + x)
         val newy = (dShift - y)
-        return DiagramPoint(newx, newy, width.toFloat(), colour, priority)
+        return DiagramPoint(newx, newy, width, colour, priority)
     }
 }
 class XYLine(val start:XYCoordinates, val end:XYCoordinates){
@@ -349,29 +363,30 @@ class XYLine(val start:XYCoordinates, val end:XYCoordinates){
             (start == other.start) and (end == other.end)
         } else {false}
     }
-    fun getCandP(diag:RawDiagram):CAndP {
+    fun getCandP(diag:RawDiagram, ghost: Boolean = false):CAndP {
         val size = diag.highlights.size
         for (i in 0 until size) {
             val highlight = diag.highlights[i]
             if ((highlight.outline)
-                    and (this in highlight.structure.lines)) {
+                    and (this in highlight.structure.lines)
+                    and (ghost or !highlight.ghost)) {
                 return CAndP( highlight.colour, size - i)
             }
         }
         return CAndP( diag.colour, 0)
     }
     fun toDiagramLine(rShift:Int = 30, dShift:Int = 40,
-                      width: Int=2, colour: Color=BLACK, priority: Int = 0):DiagramLine{
+                      width: Float=3.5f, colour: Color=BLACK, priority: Int = 0):DiagramLine{
         val x1 = (rShift + start.x)
         val x2 = (rShift + end.x)
         val y1 = (dShift - start.y)
         val y2 = (dShift - end.y)
-        return DiagramLine(x1, y1, x2, y2, width.toFloat(), colour, priority)
+        return DiagramLine(x1, y1, x2, y2, width, colour, priority)
     }
 }
 class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
                   val structure: ScaleStructure, val xyMap: XYMap = wilsonXYMap,
-                  val name:Name = Name(emptyList(),0,0)) {
+                  val name:List<Name> = emptyList()) {
     override fun toString(): String {
         return "$name: $points\n$lines\n"
     }
@@ -395,7 +410,7 @@ class Highlight (val structure: XYStructure, val colour: Color,
 class RawDiagram (val structure: XYStructure,
                   val colour: Color = BLACK,
                   val highlights: List<Highlight> = emptyList()) {
-    fun toProcessedDiagram(lMargin: Int = 30, uMargin: Int = lMargin,
+    fun toProcessedDiagram(lMargin: Int = 100, uMargin: Int = lMargin,
                            rMargin: Int = lMargin, dMargin:Int = uMargin,
                            xLen:Int = 400, yLen:Int = 300,
                            byLength:Boolean = false):ProcessedDiagram {
@@ -416,10 +431,10 @@ class RawDiagram (val structure: XYStructure,
         val ySpan = ymax - ymin
         class CanvasSize(val width: Int, val height:Int, val lGap: Int, val uGap:Int){}
         val canv:CanvasSize = if (byLength) {
-            val width = xLen.coerceAtLeast(xSpan +20)
-            val height = yLen.coerceAtLeast( ySpan +20)
-            val lGap = lMargin.coerceAtMost(width - 10 - xSpan)
-            val uGap = uMargin.coerceAtMost(height - 10 - ySpan)
+            val width = xLen.coerceAtLeast(xSpan +80)
+            val height = yLen.coerceAtLeast( ySpan +80)
+            val lGap = lMargin.coerceAtMost(width - 40 - xSpan)
+            val uGap = uMargin.coerceAtMost(height - 40 - ySpan)
             CanvasSize(width, height, lGap, uGap)
         } else  {
             val width = lMargin + rMargin + xSpan
@@ -436,15 +451,19 @@ class RawDiagram (val structure: XYStructure,
             val inCandP = point.getCandP(this, false)
             if (point in structure.points) {
                 dpoints.add(point.toDiagramPoint(rShift,
-                        dShift, 4, inCandP.c, inCandP.p))
+                        dShift, 8, inCandP.c, inCandP.p))
                 outpoints.add(point.toDiagramPoint(rShift,
-                        dShift, 6, outCandP.c, outCandP.p))
+                        dShift, 12, outCandP.c, outCandP.p))
             } else {
-                dpoints.add(point.toDiagramPoint(rShift, dShift, 3,
-                        Color(inCandP.c.rgb + 90.shl(24),
+                val inCol = if (inCandP.p == 0) {outCandP.c
+                } else {inCandP.c}
+                val outCol = if (outCandP.p == 0) {inCandP.c
+                } else {outCandP.c}
+                dpoints.add(point.toDiagramPoint(rShift, dShift, 6,
+                        Color(inCol.rgb + 180.shl(24),
                                 true), inCandP.p))
-                outpoints.add(point.toDiagramPoint(rShift, dShift, 5,
-                        Color(outCandP.c.rgb + 30.shl(24),
+                outpoints.add(point.toDiagramPoint(rShift, dShift, 10,
+                        Color(outCol.rgb + 60.shl(24),
                                 true), outCandP.p))
             }
         }
@@ -452,9 +471,9 @@ class RawDiagram (val structure: XYStructure,
             val cAndP = line.getCandP(this)
             if (line in structure.lines) {
                 dlines.add(line.toDiagramLine(rShift,
-                        dShift, 2, cAndP.c, cAndP.p))
+                        dShift, 3.5f, cAndP.c, cAndP.p))
             } else {
-                dlines.add(line.toDiagramLine(rShift, dShift, 1,
+                dlines.add(line.toDiagramLine(rShift, dShift, 2.5f,
                         Color(cAndP.c.rgb + 100.shl(24),
                                 true), cAndP.p))
             }
@@ -474,7 +493,7 @@ class DiagramLine (val x1:Int, val y1:Int, val x2:Int,
     }
 
 }
-class DiagramPoint (val x:Int, val y:Int, val width:Float = 6f,
+class DiagramPoint (val x:Int, val y:Int, val width:Int = 6,
                     val colour:Color, val priority: Int){
     override fun toString(): String {
         return "{($x, $y), w:$width, c:$colour}"

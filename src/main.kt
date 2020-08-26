@@ -276,8 +276,8 @@ val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth
 val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val noThreeList = listOf(2, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27)
 val noThreeFactors = Scale(noThreeList.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
-val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 14, 11 to -11, 13 to -4),
-        mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 11, 11 to 14, 13 to 7), octave)
+val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 42, 11 to -37, 13 to -11),
+        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 19), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),
         mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 20, 11 to 32, 13 to 7), octave)
 val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 91, 11 to -79, 13 to -66, 17 to -16, 19 to -10),
