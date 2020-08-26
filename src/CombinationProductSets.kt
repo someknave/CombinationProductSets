@@ -1,5 +1,7 @@
 package org.myprojects.hexany
 
+import java.awt.Color
+import java.awt.Color.BLACK
 import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
@@ -85,7 +87,7 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
     fun nDegreeIntervals(n: Int): List<Fraction> {
         val size = notes.size
         return notes
-                .mapIndexed{index, frac ->  frac.invertFraction() * notes[(n + index) % size]}
+                .mapIndexed{index, frac ->  frac.invertFraction(period) * notes[(n + index) % size]}
                 .sortedBy { it.toFloat()}.distinct()
     }
     fun intervalsBySteps(notes: List<Fraction>): List<List<Fraction>>{
@@ -93,10 +95,10 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
         val range = (1..(size/2))
         return range.map { this.nDegreeIntervals(it)}
     }
-    fun inversion(): Scale{ return Scale(notes.map { it.invertFraction() })}
+    fun inversion(): Scale{ return Scale(notes.map { it.invertFraction(period) })}
     fun selfProduct(n:Int):Scale {
         if (n <0) {return Scale(emptyList())}
-        var scaleAcc = Scale(listOf(1.toFraction()))
+        var scaleAcc = Scale(listOf(1.toFraction(1, period)))
         for (i in 0 until n) {
             scaleAcc = scaleAcc.listProduct(this)
         }
@@ -108,13 +110,13 @@ class Scale(val notes: List<Fraction>, val period: Period = octave) {
         for (a in notes){
             product.addAll(other.notes.map { a * it})
         }
-        return Scale(product.sortedBy { it.toFloat() }.distinct())
+        return Scale(product.sortedBy { it.toFloat() }.distinct(), period)
     }
     fun addition(other: Scale): Scale{
-        return Scale(notes.union(other.notes).toList().sortedBy { it.toFloat()})
+        return Scale(notes.union(other.notes).toList().sortedBy { it.toFloat()}, period)
     }
-    fun modulate(interval: Fraction = 1.toFraction()):Scale {
-        return Scale(notes.map{it * interval}.sortedBy { it.toFloat() })
+    fun modulate(interval: Fraction = 1.toFraction(1, period)):Scale {
+        return Scale(notes.map{it * interval}.sortedBy { it.toFloat() }, period)
     }
     fun toFactorScale(limit: Int = 11): FactorScale{
         return FactorScale(notes.map { it.factor(limit) })
@@ -156,8 +158,8 @@ class Fraction(var num:Int = 1, var div:Int = 1, val period: Period = octave) {
         }
         return Fraction(0, 0)
     }
-    fun invertFraction(): Fraction{
-        return div.toFraction(num, period)
+    fun invertFraction(p:Period = period): Fraction{
+        return div.toFraction(num, p)
     }
     operator fun compareTo(other: Any?): Int {
         if (other is Fraction) {
@@ -281,7 +283,7 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     }
     fun toXYStructure(xyMap:XYMap = wilsonXYMap, name: Name = Name(emptyList(), 0, 0)):XYStructure {
         val points = scale.notes.map { it.toXYCoord(xyMap) }
-        val lines = maps.map { it.map.map{XYLines(it.key.toXYCoord(xyMap), it.value.toXYCoord(xyMap))} }
+        val lines = maps.map { it.map.map{XYLine(it.key.toXYCoord(xyMap), it.value.toXYCoord(xyMap))} }
         return XYStructure(lines.flatten(), points, this, xyMap, name)
     }
 }
@@ -291,21 +293,79 @@ class Period(val num: Int, val div: Int, val factors: List<Int>) {
         return num.toFloat()/div
     }
 
+    override fun toString(): String {
+        return "($num/$div): $factors"
+    }
+
 }
 class XYMap(val mapX: Map<Int, Int>, val mapY: Map<Int, Int>,val period: Period = octave) {
+    override fun toString(): String {
+        return "Period:$period, xMap:$mapX, yMap$mapY"
+    }
 
 }
 class XYCoordinates(val x: Int, val y:Int){
     override fun toString(): String {
         return "($x,$y)"
     }
+    override fun equals(other: Any?): Boolean {
+        return if (other is XYCoordinates) {
+            (x == other.x) and (y == other.y)
+        } else {false}
+    }
+
+    override fun hashCode(): Int {
+        return (x.shl(8) + (y % 256))
+    }
+    fun getColour(diag:RawDiagram, outline: Boolean = false):Color {
+        for (highlight in diag.highlights) {
+            if ((highlight.outline == outline)
+                    and (this in highlight.structure.points)) {
+                return highlight.colour
+            }
+        }
+        return diag.colour
+    }
+    fun toDiagramPoint(rShift:Int = 30, dShift:Int = 40,
+                       width: Int=6, colour: Color=BLACK):DiagramPoint{
+        val newx = (rShift + x).toFloat()
+        val newy = (dShift - y).toFloat()
+        return DiagramPoint(newx, newy, width, colour)
+    }
 }
-class XYLines(val start:XYCoordinates, val end:XYCoordinates){
+class XYLine(val start:XYCoordinates, val end:XYCoordinates){
     override fun toString(): String {
         return "$start-$end"
     }
+
+    override fun hashCode(): Int {
+        return start.hashCode().shl(16) +
+                (end.hashCode() % 1.shl(16))
+    }
+    override fun equals(other: Any?): Boolean {
+        return if (other is XYLine) {
+            (start == other.start) and (end == other.end)
+        } else {false}
+    }
+    fun getColour(diag:RawDiagram):Color {
+        for (highlight in diag.highlights) {
+            if ((highlight.outline)
+                    and (this in highlight.structure.lines)) {
+                return highlight.colour
+            }
+        }
+        return diag.colour
+    }
+    fun toDiagramLine(rShift:Int = 30, dShift:Int = 40,
+                      width: Int=2, colour: Color=BLACK):DiagramLine{
+        val x1 = (rShift + start.x).toFloat()
+        val x2 = (rShift + end.x).toFloat()
+        val y1 = (dShift - start.y).toFloat()
+        val y2 = (dShift - end.y).toFloat()
+        return DiagramLine(x1, y1, x2, y2, width, colour)
+    }
 }
-class XYStructure(val lines: List<XYLines>, val points: List<XYCoordinates>,
+class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
                   val structure: ScaleStructure, val xyMap: XYMap = wilsonXYMap,
                   val name:Name = Name(emptyList(),0,0)) {
     override fun toString(): String {
@@ -314,8 +374,100 @@ class XYStructure(val lines: List<XYLines>, val points: List<XYCoordinates>,
 }
 
 
-class Highlight (val structure: XYStructure, val colour: String, val outline: Boolean = false)
+class Highlight (val structure: XYStructure, val colour: Color,
+                 val outline: Boolean = false, val ghost: Boolean = false){
+    override fun toString(): String {
+        return "${structure.name}: colour:$colour, outline:$outline," +
+                "ghost:$ghost\n${structure.points}\n${structure.lines}"
+    }
+}
 
-class PictureInput (val structure: XYStructure,
-                    val colour: String = "Black",
-                    val highlights: List<Highlight> = emptyList())
+class RawDiagram (val structure: XYStructure,
+                  val colour: Color = BLACK,
+                  val highlights: List<Highlight> = emptyList()) {
+    fun toProcessedDiagram(lMargin: Int = 30, uMargin: Int = lMargin,
+                           rMargin: Int = lMargin, dMargin:Int = uMargin,
+                           xLen:Int = 400, yLen:Int = 300,
+                           byLength:Boolean = false):ProcessedDiagram {
+        val printable = listOf(structure)
+                .union(highlights.filter { it.ghost }
+                        .map { it.structure }).toList()
+        val points = printable.flatMap { it.points }.distinct()
+        if (points.isEmpty()) {return ProcessedDiagram(
+                xLen, yLen, emptyList(), emptyList(), emptyList())}
+        val lines = printable.flatMap { it.lines }.distinct()
+        val xvals = points.map { it.x }.sorted()
+        val xmin = xvals[0]
+        val xmax = xvals.last()
+        val yvals = points.map { it.y }.sorted()
+        val ymin = yvals[0]
+        val ymax = yvals.last()
+        val xSpan = xmax - xmin
+        val ySpan = ymax - ymin
+        class CanvasSize(val width: Int, val height:Int, val lGap: Int, val uGap:Int){}
+        val canv:CanvasSize = if (byLength) {
+            val width = xLen.coerceAtLeast(xSpan +20)
+            val height = yLen.coerceAtLeast( ySpan +20)
+            val lGap = lMargin.coerceAtMost(width - 10 - xSpan)
+            val uGap = uMargin.coerceAtMost(height - 10 - ySpan)
+            CanvasSize(width, height, lGap, uGap)
+        } else  {
+            val width = lMargin + rMargin + xSpan
+            val height = uMargin + dMargin + ySpan
+            CanvasSize(width, height, lMargin, uMargin)
+        }
+        val rShift = canv.lGap - xmin
+        val dShift = canv.uGap + ySpan +ymin
+        val dpoints = mutableListOf<DiagramPoint>()
+        val outpoints = mutableListOf<DiagramPoint>()
+        val dlines = mutableListOf<DiagramLine>()
+        for (point in points){
+            val outCol = point.getColour(this, true)
+            val inCol = point.getColour(this, false)
+            if (point in structure.points) {
+                dpoints.add(point.toDiagramPoint(rShift, dShift, 4, inCol))
+                outpoints.add(point.toDiagramPoint(rShift, dShift, 6, outCol))
+            } else {
+                dpoints.add(point.toDiagramPoint(rShift, dShift, 3,
+                        Color(inCol.rgb + 90.shl(24), true)))
+                outpoints.add(point.toDiagramPoint(rShift, dShift, 5,
+                        Color(outCol.rgb + 30.shl(24), true)))
+            }
+        }
+        for (line in lines){
+            if (line in structure.lines) {
+                dlines.add(line.toDiagramLine(rShift, dShift, 2,
+                line.getColour(this)))
+            } else {
+                dlines.add(line.toDiagramLine(rShift, dShift, 1,
+                        Color(line.getColour(this).rgb + 100.shl(24),
+                                true)))
+            }
+        }
+        return ProcessedDiagram(canv.width, canv.height, dlines, dpoints, outpoints)
+    }
+}
+
+class DiagramLine (val x1:Float, val y1:Float, val x2:Float, 
+                   val y2:Float, val width:Int = 2, val colour:Color){
+    override fun toString(): String {
+        return "{($x1, $y1) - ($x2, $y2), w:$width, c:$colour}"
+    }
+
+}
+class DiagramPoint (val x:Float, val y:Float, val width:Int = 6, val colour:Color){
+    override fun toString(): String {
+        return "{($x, $y), w:$width, c:$colour}"
+    }
+
+}
+class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
+                        val points: List<DiagramPoint>, 
+                        val pointOutline: List<DiagramPoint>){
+    override fun toString(): String {
+        return "($x, $y) $points\n$lines"
+    }
+    
+}
+
+
