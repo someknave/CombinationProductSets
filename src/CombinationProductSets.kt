@@ -369,7 +369,13 @@ class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
                   val structure: ScaleStructure, val xyMap: XYMap = wilsonXYMap,
                   val name:Name = Name(emptyList(),0,0)) {
     override fun toString(): String {
-        return "$name: $points\n$lines"
+        return "$name: $points\n$lines\n"
+    }
+    fun toHighlight(colour: Color, outline: Boolean = false, ghost: Boolean = false):Highlight{
+        return Highlight(this, colour, outline, ghost)
+    }
+    fun toDiagram(colour: Color = BLACK, highlights: List<Highlight> = emptyList()):RawDiagram {
+        return RawDiagram(this, colour, highlights)
     }
 }
 
@@ -378,7 +384,7 @@ class Highlight (val structure: XYStructure, val colour: Color,
                  val outline: Boolean = false, val ghost: Boolean = false){
     override fun toString(): String {
         return "${structure.name}: colour:$colour, outline:$outline," +
-                "ghost:$ghost\n${structure.points}\n${structure.lines}"
+                "ghost:$ghost\n${structure.points}\n${structure.lines}\n"
     }
 }
 
@@ -465,7 +471,7 @@ class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
                         val points: List<DiagramPoint>, 
                         val pointOutline: List<DiagramPoint>){
     override fun toString(): String {
-        return "($x, $y) $points\n$lines"
+        return "($x, $y) $points\n$lines\n"
     }
     
 }

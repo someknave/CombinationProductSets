@@ -7,7 +7,11 @@ import kotlin.math.log
 
 fun main() {
     val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2))
-    print(scale.toXYStructure(distancePreserveXYMap).lines.size)
+    val dek = scale.toXYStructure(distancePreserveXYMap)
+    val hex  = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
+    val othHex = CPSXany( CPSName(listOf(1, 3, 9, 11),2))
+    val lastHex = CPSXany( CPSName(listOf(1, 5, 9, 11),2))
+    println(listOf(dek, hex, othHex, lastHex))
 
 
 }
