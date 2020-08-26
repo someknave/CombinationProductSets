@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/DiagramOut" />
+            <option value="$PROJECT_DIR$/DiagramPrint" />
           </set>
         </option>
       </GradleProjectSettings>

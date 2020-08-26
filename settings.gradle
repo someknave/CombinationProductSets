@@ -1,3 +1,5 @@
 rootProject.name = 'combinationProductSets'
 include 'DiagramOut'
+include 'DiagramPrint'
+include 'DiagramPrint'
 

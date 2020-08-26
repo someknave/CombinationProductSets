@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'idea'
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+
 }
 
 group 'org.example'
@@ -18,9 +19,8 @@ sourceSets {
     }
 }
 dependencies {
-    compile 'junit:junit:4.12'
+    implementation "junit:junit:4.12"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'no.tornado:tornadofx:1.7.17'
 }
 compileKotlin {
     kotlinOptions {
