@@ -1,5 +1,6 @@
 package org.myprojects.hexany
 
+import java.awt.Color
 import java.math.BigInteger
 import kotlin.math.log
 
@@ -7,11 +8,16 @@ import kotlin.math.log
 
 fun main() {
     val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2))
-    val dek = scale.toXYStructure(distancePreserveXYMap)
+    val dek = scale.toXYStructure(wilsonXYMap)
     val hex  = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
+            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, true)
     val othHex = CPSXany( CPSName(listOf(1, 3, 9, 11),2))
+            .toXYStructure(wilsonXYMap).toHighlight(Color.GREEN)
     val lastHex = CPSXany( CPSName(listOf(1, 5, 9, 11),2))
-    println(listOf(dek, hex, othHex, lastHex))
+            .toXYStructure(wilsonXYMap, noThreeFactors)
+            .toHighlight(Color.red, true, true)
+    val diagram = dek.toDiagram(Color.black, listOf(hex, othHex, lastHex)).toProcessedDiagram()
+    println(diagram)
 
 
 }
@@ -268,6 +274,8 @@ val tenth = Period (5, 2, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17,
 val sixth = Period (5, 3, listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
 val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth)
 val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
+val noThreeList = listOf(2, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27)
+val noThreeFactors = Scale(noThreeList.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 14, 11 to -11, 13 to -4),
         mapOf(2 to 0, 3 to 0, 5 to 72, 7 to 11, 11 to 14, 13 to 7), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 72, 5 to 0, 7 to 23, 11 to -25, 13 to -14),

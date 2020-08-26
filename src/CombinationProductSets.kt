@@ -279,7 +279,7 @@ class IntervalMap(val interval: FactorNote, val map: Map<FactorNote, FactorNote>
 
 class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
     override fun toString(): String {
-        return "$scale\n$maps"
+        return "$scale\n$maps\n"
     }
     fun toXYStructure(xyMap:XYMap = wilsonXYMap, name: Name = Name(emptyList(), 0, 0)):XYStructure {
         val points = scale.notes.map { it.toXYCoord(xyMap) }
@@ -383,7 +383,7 @@ class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
 class Highlight (val structure: XYStructure, val colour: Color,
                  val outline: Boolean = false, val ghost: Boolean = false){
     override fun toString(): String {
-        return "${structure.name}: colour:$colour, outline:$outline," +
+        return "${structure.name}: colour:$colour, outline:$outline, " +
                 "ghost:$ghost\n${structure.points}\n${structure.lines}\n"
     }
 }
