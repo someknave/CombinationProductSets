@@ -71,8 +71,8 @@ Below is a hand drawn diagram showing the modulation. The base copy of the Flank
 
 There is an equivelent form of multimodulation which involves choosing different flanks with the same Flank Freedom and degree but different intersections. it is implemented in the project.
 
-[Hexanies]: https://github.com/someknave/CombinationProductSets/blob/master/src/images/Hexanies.png "the [1, 3, 5, 7] Hexany and the [1, 3, 5, 11] Hexany"
-[Hexany&Dekany]: https://github.com/someknave/CombinationProductSets/blob/master/src/images/Hexany&Dekany.png "the [1, 3, 5, 7, 11] Dekany and the [1, 3, 5, 9] Hexany"
-[HexanyModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/images/FaceModulation.png "Hexany Modulation with a [1, 3, 5, 11] Hexany Mediant and two [1, 3, 5, 7] Hexany Flanks"
-[DekanyModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/images/DekanyMediantModulation.png "[1, 3, 5, 7, 11] Dekany and [1, 3, 5, 9] Hexany"
-[EdgeModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/images/HexanyEdgeModulation.png "[1, 3, 11, 13] Hexany and [1, 3, 5, 7] Hexany"
+[Hexanies]: https://github.com/someknave/CombinationProductSets/blob/master/src/Images/Hexanies.png "the [1, 3, 5, 7] Hexany and the [1, 3, 5, 11] Hexany"
+[Hexany&Dekany]: https://github.com/someknave/CombinationProductSets/blob/master/src/Images/Hexany&Dekany.png "the [1, 3, 5, 7, 11] Dekany and the [1, 3, 5, 9] Hexany"
+[HexanyModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/Images/FaceModulation.png "Hexany Modulation with a [1, 3, 5, 11] Hexany Mediant and two [1, 3, 5, 7] Hexany Flanks"
+[DekanyModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/Images/DekanyMediantModulation.png "[1, 3, 5, 7, 11] Dekany and [1, 3, 5, 9] Hexany"
+[EdgeModulation]: https://github.com/someknave/CombinationProductSets/blob/master/src/Images/HexanyEdgeModulation.png "[1, 3, 11, 13] Hexany and [1, 3, 5, 7] Hexany"
