@@ -271,6 +271,9 @@ class FactorScale(val notes:List<FactorNote>) {
         }
         return IntervalMap(interval, facMap.toMap())
     }
+    operator fun plus(scale:FactorScale):FactorScale{
+        return FactorScale(notes.union(scale.notes).toList())
+    }
     fun makeStructure(intervals:FactorScale = primeFactorScale):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
         for (int in intervals.notes.filter{it != Fraction(1, 1).factor()}) {
@@ -329,18 +332,22 @@ class XYCoordinates(val x: Int, val y:Int){
     override fun hashCode(): Int {
         return (x.shl(8) + (y % 256))
     }
-    fun getCandP(diag:RawDiagram, outline: Boolean = false,
-                 ghost: Boolean = false):CAndP {
+    fun getProperties(diag:RawDiagram, outline: Boolean):HProperties {
         val size = diag.highlights.size
+        val ghost = this !in diag.structure.points
+        val priorityMod = if (outline) {0} else {1024}
+        val widthMod = if (outline) {0} else {-4}
         for (i in 0 until size) {
-            val hlight = diag.highlights[i]
-            if ((hlight.outline == outline)
-                    and (this in hlight.structure.points)
-                    and (!hlight.ghost or ghost)) {
-                return CAndP(hlight.colour, size - i)
+            val highlight = diag.highlights[i]
+            if ((highlight.outline == outline)
+                    and (ghost or !highlight.ghost)
+                    and (this in highlight.structure.points)
+                    and (highlight.pointWidth > 0)) {
+                return HProperties(highlight.colour, highlight.pointWidth + widthMod,
+                        highlight.lineWidth, size - i +priorityMod)
             }
         }
-        return CAndP(diag.colour, 0)
+        return HProperties(diag.colour, diag.pointWidth + widthMod, diag.lineWidth, priorityMod)
     }
     fun toDiagramPoint(rShift:Int = 30, dShift:Int = 40,
                        width: Int=10, colour: Color=BLACK, priority: Int=0):DiagramPoint{
@@ -363,17 +370,22 @@ class XYLine(val start:XYCoordinates, val end:XYCoordinates){
             (start == other.start) and (end == other.end)
         } else {false}
     }
-    fun getCandP(diag:RawDiagram, ghost: Boolean = false):CAndP {
+    fun getProperties(diag:RawDiagram, outline: Boolean):HProperties {
         val size = diag.highlights.size
+        val priorityMod = if (outline) {0} else {64}
+        val widthMod = if (outline) {0} else {-2}
+        val ghost = (this !in diag.structure.lines)
         for (i in 0 until size) {
             val highlight = diag.highlights[i]
-            if ((highlight.outline)
+            if ((highlight.outline == outline)
+                    and (ghost or !highlight.ghost)
                     and (this in highlight.structure.lines)
-                    and (ghost or !highlight.ghost)) {
-                return CAndP( highlight.colour, size - i)
+                    and (highlight.lineWidth > 0)) {
+                return HProperties( highlight.colour, highlight.pointWidth,
+                        highlight.lineWidth + widthMod, priorityMod +size - i)
             }
         }
-        return CAndP( diag.colour, 0)
+        return HProperties( diag.colour, diag.pointWidth, diag.lineWidth + widthMod, priorityMod)
     }
     fun toDiagramLine(rShift:Int = 30, dShift:Int = 40,
                       width: Float=3.5f, colour: Color=BLACK, priority: Int = 0):DiagramLine{
@@ -390,25 +402,27 @@ class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
     override fun toString(): String {
         return "$name: $points\n$lines\n"
     }
-    fun toHighlight(colour: Color, outline: Boolean = false, ghost: Boolean = false):Highlight{
-        return Highlight(this, colour, outline, ghost)
+    fun toHighlight(colour: Color, pointWidth: Int, lineWidth: Float, outline: Boolean = false, ghost: Boolean = false):Highlight{
+        return Highlight(this, colour ,pointWidth, lineWidth, outline, ghost)
     }
-    fun toDiagram(colour: Color = BLACK, highlights: List<Highlight> = emptyList()):RawDiagram {
-        return RawDiagram(this, colour, highlights)
+    fun toDiagram(colour: Color = BLACK, pointWidth: Int = 12, lineWidth: Float = 3.5f, highlights: List<Highlight> = emptyList()):RawDiagram {
+        return RawDiagram(this, colour, pointWidth, lineWidth, highlights)
     }
 }
 
 
 class Highlight (val structure: XYStructure, val colour: Color,
+                 val pointWidth:Int, val lineWidth:Float,
                  val outline: Boolean = false, val ghost: Boolean = false){
     override fun toString(): String {
-        return "${structure.name}: colour:$colour, outline:$outline, " +
+        return "${structure.name}; colour:$colour, pwidth:$pointWidth" +
+                ", lwidth:$lineWidth, outline:$outline, " +
                 "ghost:$ghost\n${structure.points}\n${structure.lines}\n"
     }
 }
 
-class RawDiagram (val structure: XYStructure,
-                  val colour: Color = BLACK,
+class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
+                  val pointWidth:Int, val lineWidth:Float,
                   val highlights: List<Highlight> = emptyList()) {
     fun toProcessedDiagram(lMargin: Int = 100, uMargin: Int = lMargin,
                            rMargin: Int = lMargin, dMargin:Int = uMargin,
@@ -419,7 +433,7 @@ class RawDiagram (val structure: XYStructure,
                         .map { it.structure }).toList()
         val points = printable.flatMap { it.points }.distinct()
         if (points.isEmpty()) {return ProcessedDiagram(
-                xLen, yLen, emptyList(), emptyList(), emptyList())}
+                xLen, yLen, emptyList(), emptyList())}
         val lines = printable.flatMap { it.lines }.distinct()
         val xvals = points.map { it.x }.sorted()
         val xmin = xvals[0]
@@ -444,47 +458,52 @@ class RawDiagram (val structure: XYStructure,
         val rShift = canv.lGap - xmin
         val dShift = canv.uGap + ySpan +ymin
         val dpoints = mutableListOf<DiagramPoint>()
-        val outpoints = mutableListOf<DiagramPoint>()
         val dlines = mutableListOf<DiagramLine>()
         for (point in points){
             if (point in structure.points) {
-                val outCandP = point.getCandP(this, true)
-                val inCandP = point.getCandP(this, false)
+                val outProperties = point.getProperties(this, true)
+                val inProperties = point.getProperties(this, false)
                 dpoints.add(point.toDiagramPoint(rShift,
-                        dShift, 8, inCandP.c, inCandP.p))
-                outpoints.add(point.toDiagramPoint(rShift,
-                        dShift, 12, outCandP.c, outCandP.p))
+                        dShift, inProperties.pointWidth,
+                        inProperties.colour, inProperties.priority))
+                dpoints.add(point.toDiagramPoint(rShift,
+                        dShift, outProperties.pointWidth,
+                        outProperties.colour, outProperties.priority))
             } else {
-                val outCandP = point.getCandP(this, true, true)
-                val inCandP = point.getCandP(this, false, true)
-                val inCol = if (inCandP.p == 0) {outCandP.c
-                } else {inCandP.c}
-                val outCol = if (outCandP.p == 0) {inCandP.c
-                } else {outCandP.c}
-                dpoints.add(point.toDiagramPoint(rShift, dShift, 6,
-                        Color(inCol.rgb + 180.shl(24),
-                                true), inCandP.p))
-                outpoints.add(point.toDiagramPoint(rShift, dShift, 10,
-                        Color(outCol.rgb + 60.shl(24),
-                                true), outCandP.p))
+                val outProperties = point.getProperties(this, true)
+                val inProperties = point.getProperties(this, false)
+                dpoints.add(point.toDiagramPoint(rShift, dShift,
+                        inProperties.pointWidth, Color(inProperties.colour
+                        .rgb + 120.shl(24), true), inProperties.priority))
+                dpoints.add(point.toDiagramPoint(rShift, dShift,
+                        outProperties.pointWidth, Color(outProperties.colour
+                        .rgb + 40.shl(24), true), outProperties.priority))
             }
         }
         for (line in lines){
+            val outProperties = line.getProperties(this, true)
+            val inProperties = line.getProperties(this, false)
             if (line in structure.lines) {
-                val cAndP = line.getCandP(this)
-                dlines.add(line.toDiagramLine(rShift,
-                        dShift, 3.5f, cAndP.c, cAndP.p))
+                dlines.add(line.toDiagramLine(rShift, dShift, outProperties
+                        .lineWidth, outProperties.colour, outProperties.priority))
+                if (inProperties.lineWidth>0) {
+                    dlines.add(line.toDiagramLine(rShift, dShift, inProperties.lineWidth,
+                            inProperties.colour, inProperties.priority))
+                }
             } else {
-                val cAndP = line.getCandP(this, true)
-                dlines.add(line.toDiagramLine(rShift, dShift, 2.5f,
-                        Color(cAndP.c.rgb + 100.shl(24),
-                                true), cAndP.p))
+                if (outProperties.lineWidth>0) {
+                    dlines.add(line.toDiagramLine(rShift, dShift, inProperties
+                            .lineWidth, Color(inProperties.colour.rgb +
+                            90.shl(24), true), inProperties.priority))
+                }
+                dlines.add(line.toDiagramLine(rShift, dShift, outProperties
+                        .lineWidth, Color(outProperties.colour.rgb +
+                        30.shl(24), true), outProperties.priority))
             }
         }
         return ProcessedDiagram(canv.width, canv.height,
                 dlines.sortedBy { it.priority },
-                dpoints.sortedBy { it.priority },
-                outpoints.sortedBy { it.priority })
+                dpoints.sortedBy { it.priority })
     }
 }
 
@@ -504,13 +523,13 @@ class DiagramPoint (val x:Int, val y:Int, val width:Int = 6,
 
 }
 class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
-                        val points: List<DiagramPoint>, 
-                        val pointOutline: List<DiagramPoint>){
+                        val points: List<DiagramPoint>){
     override fun toString(): String {
         return "($x, $y) $points\n$lines\n"
     }
     
 }
-class CAndP (val c:Color, val p:Int){}
+class HProperties (val colour:Color, val pointWidth:Int, val lineWidth:Float, val priority: Int){}
+class Graph (val scale: FactorScale, val edges: Array<Array<Int>> = arrayOf()){}
 
 

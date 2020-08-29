@@ -10,13 +10,13 @@ fun main() {
     val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2))
     val dek = scale.toXYStructure(wilsonXYMap)
     val hex  = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
-            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, true)
+            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, 10, 3.5f, true)
     val othHex = CPSXany( CPSName(listOf(1, 3, 9, 11),2))
-            .toXYStructure(wilsonXYMap).toHighlight(Color.GREEN)
+            .toXYStructure(wilsonXYMap).toHighlight(Color.GREEN, 10, 3.5f, false)
     val lastHex = CPSXany( CPSName(listOf(1, 5, 9, 11),2))
             .toXYStructure(wilsonXYMap, noThreeFactors)
-            .toHighlight(Color.red, true, true)
-    val diagram = dek.toDiagram(Color.black, listOf(hex, othHex, lastHex)).toProcessedDiagram()
+            .toHighlight(Color.red, 8, 2.5f, true, true)
+    val diagram = dek.toDiagram(Color.black, 10, 3.5f, listOf(hex, othHex, lastHex)).toProcessedDiagram()
     println(diagram)
 
 
@@ -276,16 +276,18 @@ val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth
 val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val noThreeList = listOf(2, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27)
 val noThreeFactors = Scale(noThreeList.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
+val noOneFactors = Scale(mapOf(9 to 3, 5 to 3, 7 to 3, 10 to 8, 11 to 3, 13 to 3).map{it.key.toFraction(it.value)}).toFactorScale(11)
+val inc9FactorScale = Scale(listOf(3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27).map{it.toFraction(1, octave)}).toFactorScale(11)
 val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 43, 11 to -48, 13 to -9),
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 26), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 66, 11 to -71, 13 to -42),
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 60, 11 to 96, 13 to 21), octave)
 val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 273, 11 to -237, 13 to -198, 17 to -48, 19 to -30),
-        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 45, 11 to 69, 13 to 159, 17 to 144, 19 to 111), octave)
-val separatedMap = XYMap(mapOf(2 to 0, 3 to 62, 5 to 0, 7 to -62, 11 to -170, 13 to 230, 17 to -48, 19 to -30),
-        mapOf(2 to 0, 3 to 36, 5 to -72, 7 to 36, 11 to 180, 13 to 210, 17 to 144, 19 to 111), octave)
-val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -66, 5 to 108, 7 to 282, 11 to 216, 13 to 108),
-        mapOf(2 to 0, 3 to 204, 5 to 333, 7 to 204, 11 to 0, 13 to 150), octave)
+        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 45, 11 to 79, 13 to 159, 17 to 144, 19 to 111), octave)
+val separatedMap = XYMap(mapOf(2 to 0, 3 to 52, 5 to 0, 7 to -59, 11 to -170, 13 to 240, 17 to -48, 19 to -30),
+        mapOf(2 to 0, 3 to 31, 5 to -67, 7 to 33, 11 to 180, 13 to 210, 17 to 144, 19 to 111), octave)
+val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -44, 5 to 72, 7 to 188, 11 to 144, 13 to 72),
+        mapOf(2 to 0, 3 to 137, 5 to 222, 7 to 137, 11 to 0, 13 to 50), octave)
 val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),
         mapOf(2 to 0, 3 to 57, 5 to 183, 7 to 57, 11 to -150, 13 to -150), octave)
 val pentaFact = Scale(listOf(3.toFraction(1), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 11.toFraction(1))).toFactorScale()
