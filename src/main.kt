@@ -7,17 +7,12 @@ import kotlin.math.log
 //import
 
 fun main() {
-    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2))
-    val dek = scale.toXYStructure(wilsonXYMap)
+    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
+    /*val dek = scale.toXYStructure(wilsonXYMap)
     val hex  = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
-            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, 10, 3.5f, true)
-    val othHex = CPSXany( CPSName(listOf(1, 3, 9, 11),2))
-            .toXYStructure(wilsonXYMap).toHighlight(Color.GREEN, 10, 3.5f, false)
-    val lastHex = CPSXany( CPSName(listOf(1, 5, 9, 11),2))
-            .toXYStructure(wilsonXYMap, noThreeFactors)
-            .toHighlight(Color.red, 8, 2.5f, true, true)
-    val diagram = dek.toDiagram(Color.black, 10, 3.5f, listOf(hex, othHex, lastHex)).toProcessedDiagram()
-    println(diagram)
+            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, 10, 3.5f, true)*/
+    val graph = scale.scale.toFactorScale().toGraph()
+    print(graph)
 
 
 }
@@ -290,6 +285,7 @@ val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -44, 5 to 72, 7 to 188, 11 to 144
         mapOf(2 to 0, 3 to 137, 5 to 222, 7 to 137, 11 to 0, 13 to 50), octave)
 val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),
         mapOf(2 to 0, 3 to 57, 5 to 183, 7 to 57, 11 to -150, 13 to -150), octave)
+val edgeWeights = listOf(0, 1, 2, 3, 5, 6, 8, 9, 11, 14, 15)
 val pentaFact = Scale(listOf(3.toFraction(1), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 11.toFraction(1))).toFactorScale()
 val pentaFactb = Scale(listOf(13.toFraction(1), 13.toFraction(3), 13.toFraction(5), 13.toFraction(7), 13.toFraction(11))).toFactorScale()
 val penta2Fact = Scale(listOf(13.toFraction(3), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 13.toFraction(11))).toFactorScale()

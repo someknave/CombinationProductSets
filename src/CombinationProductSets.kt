@@ -2,6 +2,7 @@ package org.myprojects.hexany
 
 import java.awt.Color
 import java.awt.Color.BLACK
+import java.util.*
 import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
@@ -274,6 +275,21 @@ class FactorScale(val notes:List<FactorNote>) {
     operator fun plus(scale:FactorScale):FactorScale{
         return FactorScale(notes.union(scale.notes).toList())
     }
+    fun toGraph(weights: List<Int> = edgeWeights, a:Int = 1):Graph{
+        val size = this.notes.size
+        val array = Array(size) {IntArray(size)}
+        for (i in 0 until size) {
+            for (j in i until size) {
+                val facWeights = (this.notes[i].difference(this.notes[j])).factors.zip(weights)
+                val maxfac = facWeights.map{ if (it.first == 0) {0} else {it.second}}.maxOrNull()?:0
+                val weight = ((facWeights.map{it.second.times(it.first.coerceAtLeast(-it.first))}
+                        .sum() - maxfac) * a + 1) * maxfac
+                array[i][j] = weight
+                array[j][i] = weight
+            }
+        }
+        return Graph(this, array)
+    }
     fun makeStructure(intervals:FactorScale = primeFactorScale):ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
         for (int in intervals.notes.filter{it != Fraction(1, 1).factor()}) {
@@ -530,6 +546,13 @@ class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
     
 }
 class HProperties (val colour:Color, val pointWidth:Int, val lineWidth:Float, val priority: Int){}
-class Graph (val scale: FactorScale, val edges: Array<Array<Int>> = arrayOf()){}
+
+class Graph (val scale: FactorScale, val edges: Array<IntArray> =
+        Array(scale.notes.size) { IntArray(scale.notes.size) }){
+    override fun toString(): String {
+        val printable = edges.map { Arrays.toString(it)+ "\n"}.toList()
+        return "$scale\n$printable"
+    }
+}
 
 
