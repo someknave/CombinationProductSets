@@ -3,6 +3,7 @@ package org.myprojects.hexany
 import java.awt.Color
 import java.awt.Color.BLACK
 import java.util.*
+import kotlin.math.ceil
 import kotlin.math.pow
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
@@ -280,12 +281,14 @@ class FactorScale(val notes:List<FactorNote>) {
         val array = Array(size) {IntArray(size)}
         for (i in 0 until size) {
             for (j in i until size) {
-                val facWeights = (this.notes[i].difference(this.notes[j])).factors.zip(weights)
+                val interval = this.notes[i].difference(this.notes[j])
+                val modifier = interval.name.toFloat() *5 /6 - (1.0/6)
+                val facWeights = interval.factors.zip(weights)
                 val maxfac = facWeights.map{ if (it.first == 0) {0} else {it.second}}.maxOrNull()?:0
                 val weight = ((facWeights.map{it.second.times(it.first.coerceAtLeast(-it.first))}
                         .sum() - maxfac) * a + 1) * maxfac
-                array[i][j] = weight
-                array[j][i] = weight
+                array[i][j] = ceil(weight * modifier).toInt()
+                array[j][i] = ceil(weight / modifier).toInt()
             }
         }
         return Graph(this, array)
@@ -299,6 +302,15 @@ class FactorScale(val notes:List<FactorNote>) {
             }
         }
         return ScaleStructure(this, maps.toList())
+    }
+    fun shortTour(map:XYMap, intervals:FactorScale = primeFactorScale):XYStructure {
+        val colony = AntColonyOptimization(this.toGraph())
+        val tour = colony.solve()
+        val starts = tour.map{this.notes[it]}
+        val ends = starts.drop(1).plus(starts[0])
+        val points = this.notes.map { it.toXYCoord(map) }
+        val edges = starts.zip(ends).map { XYLine(it.first.toXYCoord(map), it.second.toXYCoord(map))}
+        return XYStructure(edges, points, this.makeStructure(intervals), map)
     }
 }
 
@@ -493,7 +505,7 @@ class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
                         .rgb + 120.shl(24), true), inProperties.priority))
                 dpoints.add(point.toDiagramPoint(rShift, dShift,
                         outProperties.pointWidth, Color(outProperties.colour
-                        .rgb + 40.shl(24), true), outProperties.priority))
+                        .rgb + 80.shl(24), true), outProperties.priority))
             }
         }
         for (line in lines){
@@ -510,11 +522,11 @@ class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
                 if (outProperties.lineWidth>0) {
                     dlines.add(line.toDiagramLine(rShift, dShift, inProperties
                             .lineWidth, Color(inProperties.colour.rgb +
-                            90.shl(24), true), inProperties.priority))
+                            120.shl(24), true), inProperties.priority))
                 }
                 dlines.add(line.toDiagramLine(rShift, dShift, outProperties
                         .lineWidth, Color(outProperties.colour.rgb +
-                        30.shl(24), true), outProperties.priority))
+                        80.shl(24), true), outProperties.priority))
             }
         }
         return ProcessedDiagram(canv.width, canv.height,
@@ -554,5 +566,7 @@ class Graph (val scale: FactorScale, val edges: Array<IntArray> =
         return "$scale\n$printable"
     }
 }
+
+
 
 
