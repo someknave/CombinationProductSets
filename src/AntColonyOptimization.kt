@@ -4,27 +4,31 @@ import java.awt.Color
 import kotlin.math.pow
 import kotlin.random.Random
 
-class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Double = 1.0,
-                             val beta:Double = 1.8, val evaporation:Double = .5,
+class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Double = 3.07,
+                             val beta:Double = 5.09, val evaporation:Double = .68,
                              val Q:Double= 500.0, val antFactor:Double = 0.9, val randomFactor:Double = 0.02,
-                             val maxIterations:Int = 500, val numberOfNotes:Int = graph.edges.size,
-                             val numberOfAnts:Int = (numberOfNotes * antFactor).toInt(),
+                             val greedFactor:Double=.2, val maxIterations:Int = 1000,
+                             val numberOfNotes:Int = graph.edges.size, val backFactor:Double = .2,
+                             val numberOfAnts:Int = (numberOfNotes * antFactor).toInt().coerceAtMost(30) ,
                              var trails:Array<DoubleArray> = Array(numberOfNotes){DoubleArray(numberOfNotes){c}},
                              var ants: Array<Ant> = Array(numberOfAnts){Ant(numberOfNotes)},
-                             var index: Int = 0, var bestTourOrder: IntArray = IntArray(0),
-                             var bestTourLength:Int = 0 ) {
+                             var index: Int = 0, var worstAnt:Ant = Ant(numberOfNotes), var ibAnt:Ant = Ant(numberOfNotes),
+                             var gbAnt:Ant = Ant(numberOfNotes), var rbAnt:Ant = Ant(numberOfNotes),
+                             val resbf:Double = 1.5, val resmin:Int = 200, var resIt:Int = 0,
+                             val updateFactor:Double =.01, val rChance:Double = .6, val gChance:Double = 1.5) {
 
     fun solve():IntArray{
         setupAnts()
         trails = Array(numberOfNotes){DoubleArray(numberOfNotes){c}}
         for (iter:Int in 0 until maxIterations) {
             moveAnts()
+            updateBandW()
             updateTrails()
-            updateBest()
+
         }
-        println("Best tour length: " + (bestTourLength - numberOfNotes).toString())
-        println("Best tour order: " + bestTourOrder.map { graph.scale.notes[it].name })
-        return bestTourOrder
+        println("Best tour length: " + gbAnt.length.toString())
+        println("Best tour order: " + gbAnt.trail.map { graph.scale.notes[it].name })
+        return gbAnt.trail
     }
     fun setupAnts(){
         for (ant in ants) {
@@ -42,11 +46,15 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
         }
     }
     fun selectNextNote(ant: Ant):Int{
-        if (Random.nextDouble()<randomFactor) {
+        val rand = Random.nextDouble()
+        if (rand<randomFactor) {
             val availableNotes = (0 until numberOfNotes).filter { !(ant.visited(it) )}
             return availableNotes[Random.nextInt(availableNotes.size)]
         }
         val probabilities =calculateProbabilities(ant)
+        if (rand<greedFactor) {
+            return probabilities.indices.maxByOrNull { probabilities[it] }?:-1
+        }
         var total = 0.0
         val r = Random.nextDouble()
         for (i in 0 until numberOfNotes) {
@@ -58,52 +66,92 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
         throw RuntimeException("No Available Notes")
     }
     fun calculateProbabilities(ant:Ant):DoubleArray{
-        val probabilities = DoubleArray(numberOfNotes)
+        val rawProbs = DoubleArray(numberOfNotes)
         val i = ant.trail[index]
         var total = 0.0
-        for (j in probabilities.indices) {
+        for (j in rawProbs.indices) {
             if (ant.visited(j)) {
-                probabilities[j] = 0.0
+                rawProbs[j] = 0.0
             } else {
                 val prob = trails[i][j].pow(alpha) * (1.0 / graph.edges[i][j]).pow(beta)
-                probabilities[j] = prob
+                rawProbs[j] = prob
                 total += prob
             }
         }
-        return probabilities.map { it / total }.toDoubleArray()
+        return rawProbs.map { it / total }.toDoubleArray()
     }
-    fun updateTrails(){
-        for (i in trails.indices){
-            trails[i] = trails[i].map { it * evaporation }.toDoubleArray()
-        }
-        for (ant in ants) {
-            val contribution = Q /ant.trailLength(graph)
-            for (i in 1 until numberOfNotes){
-                trails[ant.trail[i-1]][ant.trail[i]] += contribution
+    fun updateBandW() {
+        ants[0].trailLength(graph)
+        worstAnt = ants[0]
+        ibAnt = ants[0]
+        if (rbAnt.length <= 0.0){
+            rbAnt = Ant(numberOfNotes, BooleanArray(numberOfNotes){true},
+                    ants[0].trail.copyOf(), ants[0].length)
+            if (gbAnt.length <= 0.0){
+                gbAnt = Ant(numberOfNotes, BooleanArray(numberOfNotes){true},
+                        ants[0].trail.copyOf(), ants[0].length)
             }
-            trails[ant.trail.last()][ant.trail[0]] += contribution
-        }
-    }
-    fun updateBest() {
-        if (bestTourLength <= 0){
-            bestTourLength = ants[0].trailLength(graph)
-            bestTourOrder = ants[0].trail
         }
         for (ant in ants){
             val antTrailLength = ant.trailLength(graph)
-            if(antTrailLength<bestTourLength) {
-                bestTourLength = antTrailLength
-                bestTourOrder = ant.trail
+            if(antTrailLength<ibAnt.length) {
+                ibAnt = ant
+                if(antTrailLength<rbAnt.length) {
+                    rbAnt = Ant(numberOfNotes, BooleanArray(numberOfNotes){true},
+                            ant.trail.copyOf(), ant.length)
+                    if(antTrailLength<gbAnt.length) {
+                        gbAnt = Ant(numberOfNotes, BooleanArray(numberOfNotes){true},
+                                ant.trail.copyOf(), ant.length)
+                    }
+                }
+            } else if (antTrailLength>worstAnt.length) {
+                worstAnt = ant
             }
             ant.clear()
             ant.visitNote(-1, Random.nextInt(numberOfNotes))
         }
+    }
+    fun updateTrails(){
+        if ((resIt>resmin) and (worstAnt.length < gbAnt.length * resbf)) {
+            resetTrails()
+            return
+        }
+        for (i in trails.indices){
+            trails[i] = trails[i].map { it * evaporation }.toDoubleArray()
+        }
+        val rand = resIt * updateFactor + Random.nextDouble()
+        val randomBest = when {
+            rand > gChance -> gbAnt
+            rand > rChance -> rbAnt
+            else -> ibAnt
+        }
+        val updatedAnts = ants.clone().dropWhile { it ==worstAnt }.plus(randomBest)
+        for (ant in updatedAnts) {
+            val contribution = Q /ant.trailLength(graph)
+            for (i in 0 until numberOfNotes){
+                trails[ant.trail[i]][ant.trail[(1+i) % numberOfNotes]] += contribution *(1-backFactor)
+                trails[ant.trail[(1+i) % numberOfNotes]][ant.trail[i]] += contribution *(backFactor)
+            }
+        }
+        for (i in worstAnt.trail.indices){
+            if (worstAnt.trail[(1+i) % numberOfNotes] !=
+                    gbAnt.trail[(gbAnt.trail.indexOf(worstAnt.trail[i]) + 1) % numberOfNotes]){
+                trails[worstAnt.trail[i]][worstAnt.trail[(1+i) % numberOfNotes]] *= evaporation
+            }
+        }
+        resIt ++
         index = 0
     }
+    fun resetTrails(){
+        rbAnt = Ant(numberOfNotes)
+        trails = Array(numberOfNotes){DoubleArray(numberOfNotes){c}}
+        resIt=0
+    }
+
 
 }
 class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){false},
-          var trail:IntArray = IntArray(tourSize)) {
+          var trail:IntArray = IntArray(tourSize), var length:Double = 0.0) {
     fun visitNote(index: Int, note: Int) {
         trail[index + 1] = note
         visited[note] = true
@@ -112,8 +160,9 @@ class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){f
     fun visited(note: Int): Boolean {
         return visited[note]
     }
-    fun trailLength(graph: Graph):Int {
-        var length = graph.edges[trail.last()][trail[0]]
+    fun trailLength(graph: Graph):Double {
+        if (length != 0.0) {return length}
+        length = graph.edges[trail.last()][trail[0]]
         for (i in 1 until trail.size){
             length += graph.edges[trail[i -1]][trail[i]]
         }
@@ -121,7 +170,7 @@ class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){f
     }
     fun clear() {
         visited = BooleanArray(visited.size){false}
-        trail = IntArray(tourSize){-1}
+        length = 0.0
     }
 
     override fun toString(): String {
@@ -133,11 +182,13 @@ class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){f
 
 fun main(){
     val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2)).cpsModulation(CPSXany( CPSName(listOf(1, 5, 7, 9),2)))
-    val graph = scale.scale.toFactorScale().toGraph()
-    val tour = scale.scale.toFactorScale().shortTour(gradyXYMap)
-    val h1 = tour.toHighlight(Color.blue, 12, 4.0f, outline = true)
-    val h2 = tour.toHighlight(Color.green, 8, lineWidth = 4.0f, outline = false, ghost = true)
-    val diag = scale.toXYStructure(gradyXYMap).toDiagram(Color.red, 10, 2.5f, highlights = listOf(h1, h2)).toProcessedDiagram()
+    val tour = scale.scale.toFactorScale().shortTours(gradyXYMap, primeFactorScale, 2)
+    val h1 = tour[0].toHighlight(Color.blue, 12, 4.0f, outline = true)
+    val h2 = tour[1].toHighlight(Color.red, 12, 4.0f, outline = true)
+    val h3 = tour[0].toHighlight(Color.green, 8, lineWidth = 4.0f, outline = false, ghost = true)
+    val h4 = tour[1].toHighlight(Color.orange, 8, lineWidth = 4.0f, outline = false, ghost = true)
+    val diag = scale.toXYStructure(gradyXYMap).toDiagram(Color.yellow, 10, 2.5f, highlights = listOf(h1, h2, h3, h4)).toProcessedDiagram()
+
     val frame = DiagramScreen("Short Tour", diag)
     frame.isVisible = true
 

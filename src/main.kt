@@ -1,6 +1,5 @@
 package org.myprojects.hexany
 
-import java.awt.Color
 import java.math.BigInteger
 import kotlin.math.log
 
@@ -285,7 +284,7 @@ val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -44, 5 to 72, 7 to 188, 11 to 144
         mapOf(2 to 0, 3 to 137, 5 to 222, 7 to 137, 11 to 0, 13 to 50), octave)
 val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),
         mapOf(2 to 0, 3 to 57, 5 to 183, 7 to 57, 11 to -150, 13 to -150), octave)
-val edgeWeights = listOf(0, 1, 2, 3, 5, 6, 8, 9, 11, 14, 15)
+val edgeWeights = doubleArrayOf(0.0, 1.75, 2.0, 2.5, 3.0, 3.25, 3.75, 4.0, 4.5, 5.0, 5.25)
 val pentaFact = Scale(listOf(3.toFraction(1), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 11.toFraction(1))).toFactorScale()
 val pentaFactb = Scale(listOf(13.toFraction(1), 13.toFraction(3), 13.toFraction(5), 13.toFraction(7), 13.toFraction(11))).toFactorScale()
 val penta2Fact = Scale(listOf(13.toFraction(3), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 13.toFraction(11))).toFactorScale()

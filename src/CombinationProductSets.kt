@@ -1,10 +1,11 @@
 package org.myprojects.hexany
 
+
 import java.awt.Color
 import java.awt.Color.BLACK
 import java.util.*
-import kotlin.math.ceil
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 data class CPSXany(val cpsName: CPSName, val key: Int = cpsName.nameToKey(),
                    val scale:Scale = cpsName.cps(),
@@ -259,43 +260,65 @@ class FactorScale(val notes:List<FactorNote>) {
     override fun toString(): String {
         return "$notes"
     }
-    fun intMap(interval: FactorNote, period: Period = octave):IntervalMap{
+
+    fun intMap(interval: FactorNote, period: Period = octave): IntervalMap {
         val facMap = mutableMapOf<FactorNote, FactorNote>()
         for (note in notes) {
             val note2 = note.add(interval)
             val note3 = note2.difference(period.num.toFraction(period.div).factor())
             if (note2 in notes) {
-                facMap.put(note, note2 )
+                facMap.put(note, note2)
             }
-            if (note3 in notes){
-                facMap.put(note, note3 )
+            if (note3 in notes) {
+                facMap.put(note, note3)
             }
         }
         return IntervalMap(interval, facMap.toMap())
     }
-    operator fun plus(scale:FactorScale):FactorScale{
+    operator fun plus(scale: FactorScale): FactorScale {
         return FactorScale(notes.union(scale.notes).toList())
     }
-    fun toGraph(weights: List<Int> = edgeWeights, a:Int = 1):Graph{
+    fun toGraph(weights: DoubleArray = edgeWeights,
+                lines: Array<IntArray> = emptyArray(),
+                z: Double = 0.6): Graph {
         val size = this.notes.size
-        val array = Array(size) {IntArray(size)}
+        val array = Array(size){DoubleArray(size)}
+        val edges = Array(size){IntArray(0)}
+        for (tour in lines) {
+            for (i in tour.indices) {
+                edges[i] = edges[i].plus((i+1) % tour.size)
+            }
+        }
         for (i in 0 until size) {
             for (j in i until size) {
+                val travelled = when {
+                    (j in edges[i]) and (i in edges[j]) -> listOf(14.0, 14.0)
+                    j in edges[i] -> listOf(8.0, 3.0)
+                    i in edges[j] -> listOf(3.0, 8.0)
+                    else -> listOf(0.0, 0.0)
+                }
                 val interval = this.notes[i].difference(this.notes[j])
-                val modifier = interval.name.toFloat() *5 /6 - (1.0/6)
-                val facWeights = interval.factors.zip(weights)
-                val maxfac = facWeights.map{ if (it.first == 0) {0} else {it.second}}.maxOrNull()?:0
-                val weight = ((facWeights.map{it.second.times(it.first.coerceAtLeast(-it.first))}
-                        .sum() - maxfac) * a + 1) * maxfac
-                array[i][j] = ceil(weight * modifier).toInt()
-                array[j][i] = ceil(weight / modifier).toInt()
+                val modifier = interval.name.toFloat().toDouble()  - (3.0 - sqrt(5.0))/2
+                val facWeights = interval.factors.zip(weights.toList())
+                val maxfac = facWeights.map {
+                    if (it.first == 0) {
+                        0.0
+                    } else {
+                        it.second
+                    }
+                }.maxOrNull() ?: 0.0
+                val weight = ((facWeights.map { it.second.times(it.first.coerceAtLeast(-it.first)) }
+                        .sum() - maxfac) * z + 1) * maxfac
+                array[i][j] = weight * modifier + travelled[0]
+                array[j][i] = weight / modifier + travelled[1]
             }
         }
         return Graph(this, array)
     }
-    fun makeStructure(intervals:FactorScale = primeFactorScale):ScaleStructure {
+
+    fun makeStructure(intervals: FactorScale = primeFactorScale): ScaleStructure {
         val maps = mutableListOf<IntervalMap>()
-        for (int in intervals.notes.filter{it != Fraction(1, 1).factor()}) {
+        for (int in intervals.notes.filter { it != Fraction(1, 1).factor() }) {
             val intMap = this.intMap(int)
             if (intMap.map.isNotEmpty()) {
                 maps.add(intMap)
@@ -303,14 +326,23 @@ class FactorScale(val notes:List<FactorNote>) {
         }
         return ScaleStructure(this, maps.toList())
     }
-    fun shortTour(map:XYMap, intervals:FactorScale = primeFactorScale):XYStructure {
-        val colony = AntColonyOptimization(this.toGraph())
+
+    fun shortTours(map: XYMap, intervals: FactorScale = primeFactorScale,
+                   tours: Int = 1, lines: Array<IntArray> = emptyArray()): List<XYStructure> {
+        if (tours <= 0) {
+            return emptyList()
+        }
+        val colony = AntColonyOptimization(this.toGraph(edgeWeights, lines))
         val tour = colony.solve()
-        val starts = tour.map{this.notes[it]}
+        val starts = tour.map { this.notes[it] }
         val ends = starts.drop(1).plus(starts[0])
         val points = this.notes.map { it.toXYCoord(map) }
-        val edges = starts.zip(ends).map { XYLine(it.first.toXYCoord(map), it.second.toXYCoord(map))}
-        return XYStructure(edges, points, this.makeStructure(intervals), map)
+        val edges = starts.zip(ends).map { XYLine(it.first.toXYCoord(map), it.second.toXYCoord(map)) }
+        val stucture = XYStructure(edges, points, this.makeStructure(intervals), map)
+        return if (tours == 1) {
+            listOf(stucture)
+        } else {shortTours(map, intervals, tours -1, lines.plus(tour))
+                .plus(stucture)}
     }
 }
 
@@ -559,8 +591,8 @@ class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
 }
 class HProperties (val colour:Color, val pointWidth:Int, val lineWidth:Float, val priority: Int){}
 
-class Graph (val scale: FactorScale, val edges: Array<IntArray> =
-        Array(scale.notes.size) { IntArray(scale.notes.size) }){
+class Graph (val scale: FactorScale, val edges: Array<DoubleArray> =
+        Array(scale.notes.size) { DoubleArray(scale.notes.size) }){
     override fun toString(): String {
         val printable = edges.map { Arrays.toString(it)+ "\n"}.toList()
         return "$scale\n$printable"
