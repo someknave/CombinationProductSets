@@ -4,9 +4,9 @@ import java.awt.Color
 import kotlin.math.pow
 import kotlin.random.Random
 
-class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Double = 3.07,
-                             val beta:Double = 5.09, val evaporation:Double = .68,
-                             val Q:Double= 500.0, val antFactor:Double = 0.9, val randomFactor:Double = 0.02,
+class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Double = 1.53,
+                             val beta:Double = 2.54, val evaporation:Double = .68,
+                             val Q:Double= 10.0, val antFactor:Double = 0.9, val randomFactor:Double = 0.02,
                              val greedFactor:Double=.2, val maxIterations:Int = 1000,
                              val numberOfNotes:Int = graph.edges.size, val backFactor:Double = .2,
                              val numberOfAnts:Int = (numberOfNotes * antFactor).toInt().coerceAtMost(30) ,
@@ -37,8 +37,8 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
             index = 0
         }
     }
-    fun moveAnts(){
-        for (i in 0 until numberOfNotes -1) {
+    fun moveAnts(start:Int = 0, end:Int = numberOfNotes -1){
+        for (i in start until end) {
             for (ant in ants) {
                 ant.visitNote(i, selectNextNote(ant))
             }
@@ -57,7 +57,7 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
         }
         var total = 0.0
         val r = Random.nextDouble()
-        for (i in 0 until numberOfNotes) {
+        for (i in probabilities.indices) {
             total += probabilities[i]
             if (r <= total) {
                 return i
@@ -107,8 +107,6 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
             } else if (antTrailLength>worstAnt.length) {
                 worstAnt = ant
             }
-            ant.clear()
-            ant.visitNote(-1, Random.nextInt(numberOfNotes))
         }
     }
     fun updateTrails(){
@@ -139,29 +137,35 @@ class AntColonyOptimization (val graph: Graph, val c:Double = 1.0, val alpha:Dou
                 trails[worstAnt.trail[i]][worstAnt.trail[(1+i) % numberOfNotes]] *= evaporation
             }
         }
+        setupAnts()
         resIt ++
-        index = 0
+
     }
     fun resetTrails(){
         rbAnt = Ant(numberOfNotes)
         trails = Array(numberOfNotes){DoubleArray(numberOfNotes){c}}
+        setupAnts()
         resIt=0
     }
 
 
 }
+
 class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){false},
           var trail:IntArray = IntArray(tourSize), var length:Double = 0.0) {
     fun visitNote(index: Int, note: Int) {
         trail[index + 1] = note
-        visited[note] = true
+        if(note in visited.indices){visited[note] = true}
     }
 
     fun visited(note: Int): Boolean {
-        return visited[note]
+        return if(note in visited.indices) {visited[note]} else {false}
     }
     fun trailLength(graph: Graph):Double {
-        if (length != 0.0) {return length}
+        if (trail.last() == -1) {
+            length = 100000.0
+            return length
+        }
         length = graph.edges[trail.last()][trail[0]]
         for (i in 1 until trail.size){
             length += graph.edges[trail[i -1]][trail[i]]
@@ -181,7 +185,20 @@ class Ant(val tourSize: Int, var visited:BooleanArray = BooleanArray(tourSize){f
 
 
 fun main(){
-    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2)).cpsModulation(CPSXany( CPSName(listOf(1, 5, 7, 9),2)))
+    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7, 11),2)).cpsModulation(CPSXany( CPSName(listOf(1, 3, 5, 9),2)))
+    /*val graph =scale.scale.toFactorScale().toGraph()
+    val colony = AntColonyOptimization(graph)
+    colony.resetTrails()
+    for (array in graph.edges) {println(array.toList())}
+    println(colony.ants[0].visited.toList())
+    println(colony.ants[0].trail[0])
+    println(colony.calculateProbabilities(colony.ants[0]).toList())
+    println(colony.ants[1].visited.toList())
+    println(colony.ants[1].trail[0])
+    println(colony.calculateProbabilities(colony.ants[1]).toList())*/
+
+
+
     val tour = scale.scale.toFactorScale().shortTours(gradyXYMap, primeFactorScale, 2)
     val h1 = tour[0].toHighlight(Color.blue, 12, 4.0f, outline = true)
     val h2 = tour[1].toHighlight(Color.red, 12, 4.0f, outline = true)

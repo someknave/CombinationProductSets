@@ -27,6 +27,10 @@ class DiagramScreen(title: String, diagram: ProcessedDiagram) : JFrame() {
 
 
 }
+/*
+class Picture(val xSize:Int, val ySize:Int): BufferedImage(){
+
+}*/
 
 class Diagram(val xSize:Int, val ySize:Int, val diagram: ProcessedDiagram):JPanel(){
     private fun doDrawing(g:Graphics){
@@ -54,18 +58,17 @@ class Diagram(val xSize:Int, val ySize:Int, val diagram: ProcessedDiagram):JPane
 
 
 private fun createAndShowGUI() {
-    val map:XYMap = separatedMap
-    val fac:FactorScale = noOneFactors
-    val dek2 = CPSXany(CPSName(listOf(3, 7, 9, 11, 13),2))
-    val dek3 = CPSXany(CPSName(listOf(1, 5, 9, 11, 13),2))
-    val mod = dek2.cpsModulation(dek3).toXYStructure(map, fac + inc9FactorScale )
+    val map:XYMap = distancePreserveXYMap
+    val fac:FactorScale = primeFactorScale
+    val dek2 = CPSXany(CPSName(listOf(1, 5, 11, 13, 17, 19),3)).scale
+            .modulate(3.toFraction()).toFactorScale().makeStructure(fac).toXYStructure(map).toHighlight(Color.red)
+    val dek3 = CPSXany(CPSName(listOf(1, 3, 5, 7, 11, 13, 17, 19),4)).toXYStructure(map, fac)
+    /*val mod = dek2.cpsModulation(dek3).toXYStructure(map,fac)
     val mmod = multiModulateCPS(CPSPair(dek3, dek2)).toXYStructure(map, fac)
     val h1 = dek3.toXYStructure(map, inc9FactorScale).toHighlight(Color.RED, 10, 3.75f, false)
     val h2 = dek2.toXYStructure(map, fac).toHighlight(Color.BLUE, 10, 3.5f, true)
-    val h3 = dek2.scale.modulate(1.toFraction(3)).toFactorScale()
-            .makeStructure(fac).toXYStructure(map).toHighlight(Color(0, 180, 255), 10, 3.75f,true)
-    val h4 = dek2.scale.modulate(5.toFraction(7)).toFactorScale()
-            .makeStructure(fac).toXYStructure(map).toHighlight(Color(0, 180, 255), 10, 3.75f,true)
+    val h3 = mmod.toHighlight(Color.GREEN, 10, 3.75f,true , true)
+    val h4 = mmod.toHighlight(Color.yellow, 10, 3.75f,false, true)
     val h5 = dek2.scale.modulate(5.toFraction(21)).toFactorScale()
             .makeStructure(fac).toXYStructure(map).toHighlight(Color.GREEN, 10, 3.75f,true)
     val h6 = dek2.scale.modulate(5.toFraction(3)).toFactorScale()
@@ -75,7 +78,7 @@ private fun createAndShowGUI() {
     val h8 = mmod.toHighlight(Color.black, 8, 2.5f, true, true )
     val h9 = mmod.toHighlight(Color.black, 8, 2.5f, false, true )
     val h10 = dek3.toXYStructure(map, inc9FactorScale).toHighlight(Color.RED, 10, 3.75f, true)
-    /* val hex1 = CPSXany( CPSName(listOf(1, 3, 7, 13),2))
+    val hex1 = CPSXany( CPSName(listOf(1, 3, 7, 13),2))
     val hex2 = CPSXany( CPSName(listOf(1, 5, 11, 13),2))
     val mod = hex1.cpsModulation(hex2).toXYStructure(map, fac)
     val struct1  = hex1.toXYStructure(map,fac).toHighlight(Color.blue, true)
@@ -94,7 +97,7 @@ private fun createAndShowGUI() {
     val fullMod = multiModulateCPS(CPSPair(hex2, hex1)).toXYStructure(map,fac)
     val struct3 = fullMod.toHighlight(Color.black, true,true)
     val struct3a = fullMod.toHighlight(Color.black, false,true)*/
-    val diagram = mod.toDiagram(Color.black, 10, 1.4f, listOf(h1, h2, h3, h4, h5, h6, h7, h8, h9, h10)).toProcessedDiagram(100, 50)
+    val diagram = dek3.toDiagram(Color.black, 10, 1.4f, listOf(dek2)).toProcessedDiagram(100, 50)
     val frame = DiagramScreen("Dekany Modulation", diagram)
     frame.isVisible = true
 }

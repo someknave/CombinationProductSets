@@ -276,10 +276,10 @@ val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 43, 11 to -48, 13 t
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 26), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 66, 11 to -71, 13 to -42),
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 60, 11 to 96, 13 to 21), octave)
-val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 273, 11 to -237, 13 to -198, 17 to -48, 19 to -30),
-        mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 45, 11 to 79, 13 to 159, 17 to 144, 19 to 111), octave)
-val separatedMap = XYMap(mapOf(2 to 0, 3 to 52, 5 to 0, 7 to -59, 11 to -170, 13 to 240, 17 to -48, 19 to -30),
-        mapOf(2 to 0, 3 to 31, 5 to -67, 7 to 33, 11 to 180, 13 to 210, 17 to 144, 19 to 111), octave)
+val distancePreserveXYMap = XYMap(mapOf(2 to 0, 3 to 108, 5 to 0, 7 to 124, 11 to -24, 13 to -100, 17 to -59, 19 to 12),
+        mapOf(2 to 0, 3 to 0, 5 to 108, 7 to 23, 11 to 198, 13 to 83, 17 to 137, 19 to 63), octave)
+val separatedMap = XYMap(mapOf(2 to 0, 3 to 52, 5 to 0, 7 to -45, 11 to -170, 13 to 240, 17 to -48, 19 to 44),
+        mapOf(2 to 0, 3 to 31, 5 to -67, 7 to 33, 11 to 180, 13 to 210, 17 to 144, 19 to 88), octave)
 val pentagonalXYMap = XYMap(mapOf(2 to 0, 3 to -44, 5 to 72, 7 to 188, 11 to 144, 13 to 72),
         mapOf(2 to 0, 3 to 137, 5 to 222, 7 to 137, 11 to 0, 13 to 50), octave)
 val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13 to -108),

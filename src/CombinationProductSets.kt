@@ -3,6 +3,7 @@ package org.myprojects.hexany
 
 import java.awt.Color
 import java.awt.Color.BLACK
+import java.lang.Math.pow
 import java.util.*
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -280,7 +281,7 @@ class FactorScale(val notes:List<FactorNote>) {
     }
     fun toGraph(weights: DoubleArray = edgeWeights,
                 lines: Array<IntArray> = emptyArray(),
-                z: Double = 0.6): Graph {
+                z: Double = 0.8, mod:Double = 0.8): Graph {
         val size = this.notes.size
         val array = Array(size){DoubleArray(size)}
         val edges = Array(size){IntArray(0)}
@@ -289,6 +290,7 @@ class FactorScale(val notes:List<FactorNote>) {
                 edges[i] = edges[i].plus((i+1) % tour.size)
             }
         }
+        val addMod = -3*mod/2 +sqrt(pow(mod /2, 2.0) + 1)
         for (i in 0 until size) {
             for (j in i until size) {
                 val travelled = when {
@@ -298,7 +300,7 @@ class FactorScale(val notes:List<FactorNote>) {
                     else -> listOf(0.0, 0.0)
                 }
                 val interval = this.notes[i].difference(this.notes[j])
-                val modifier = interval.name.toFloat().toDouble()  - (3.0 - sqrt(5.0))/2
+                val modifier = interval.name.toFloat().toDouble() *mod + addMod
                 val facWeights = interval.factors.zip(weights.toList())
                 val maxfac = facWeights.map {
                     if (it.first == 0) {
@@ -332,7 +334,9 @@ class FactorScale(val notes:List<FactorNote>) {
         if (tours <= 0) {
             return emptyList()
         }
-        val colony = AntColonyOptimization(this.toGraph(edgeWeights, lines))
+        val graph =this.toGraph(edgeWeights, lines)
+        val colony = AntColonyOptimization(graph)
+        for (array in graph.edges) {println(array.toList())}
         val tour = colony.solve()
         val starts = tour.map { this.notes[it] }
         val ends = starts.drop(1).plus(starts[0])
@@ -462,7 +466,7 @@ class XYStructure(val lines: List<XYLine>, val points: List<XYCoordinates>,
     override fun toString(): String {
         return "$name: $points\n$lines\n"
     }
-    fun toHighlight(colour: Color, pointWidth: Int, lineWidth: Float, outline: Boolean = false, ghost: Boolean = false):Highlight{
+    fun toHighlight(colour: Color, pointWidth: Int = 14, lineWidth: Float= 4.1f, outline: Boolean = false, ghost: Boolean = false):Highlight{
         return Highlight(this, colour ,pointWidth, lineWidth, outline, ghost)
     }
     fun toDiagram(colour: Color = BLACK, pointWidth: Int = 12, lineWidth: Float = 3.5f, highlights: List<Highlight> = emptyList()):RawDiagram {
@@ -596,6 +600,31 @@ class Graph (val scale: FactorScale, val edges: Array<DoubleArray> =
     override fun toString(): String {
         val printable = edges.map { Arrays.toString(it)+ "\n"}.toList()
         return "$scale\n$printable"
+    }
+    fun addLines(lines: Array<IntArray>, factor:Double = 1.0): Graph {
+        if (lines.isEmpty()) {return this}
+        val size = lines[0].size
+        val modEdges = Array(size){IntArray(0)}
+        for (tour in lines) {
+            for (i in tour.indices) {
+                modEdges[i] = modEdges[i].plus((i+1) % tour.size)
+            }
+        }
+        val copyEdges = edges.map {it.copyOf()}.toTypedArray()
+        for (i in 0 until size -1) {
+            for (j in i+1 until size) {
+                val travelled = when {
+                    (j in modEdges[i]) and (i in modEdges[j]) -> listOf(14.0, 14.0)
+                    j in modEdges[i] -> listOf(8.0, 3.0)
+                    i in modEdges[j] -> listOf(3.0, 8.0)
+                    else -> listOf(0.0, 0.0)
+                }
+                copyEdges[i][j] += factor * travelled[0]
+                copyEdges[j][i] += factor * travelled[1]
+            }
+        }
+        return Graph(scale, copyEdges)
+
     }
 }
 
