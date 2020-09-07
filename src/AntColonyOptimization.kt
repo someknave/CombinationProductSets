@@ -204,10 +204,7 @@ fun main(){
     val h2 = tour[1].toHighlight(Color.red, 12, 4.0f, outline = true)
     val h3 = tour[0].toHighlight(Color.green, 8, lineWidth = 4.0f, outline = false, ghost = true)
     val h4 = tour[1].toHighlight(Color.orange, 8, lineWidth = 4.0f, outline = false, ghost = true)
-    val diag = scale.toXYStructure(gradyXYMap).toDiagram(Color.yellow, 10, 2.5f, highlights = listOf(h1, h2, h3, h4)).toProcessedDiagram()
 
-    val frame = DiagramScreen("Short Tour", diag)
-    frame.isVisible = true
 
 
 
@@ -216,3 +213,4 @@ fun main(){
 
 
 }
+

@@ -3,15 +3,12 @@ package org.myprojects.hexany
 import java.math.BigInteger
 import kotlin.math.log
 
-//import
+
 
 fun main() {
-    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
-    /*val dek = scale.toXYStructure(wilsonXYMap)
-    val hex  = CPSXany( CPSName(listOf(1, 3, 5, 7),2))
-            .toXYStructure(wilsonXYMap).toHighlight(Color.blue, 10, 3.5f, true)*/
-    val graph = scale.scale.toFactorScale().toGraph()
-    print(graph)
+    val scale = CPSXany( CPSName(listOf(1, 3, 5, 7),2)).cpsModulation(CPSXany( CPSName(listOf(1, 3, 5, 11),2))).toXYStructure(wilsonXYMap).toDiagram().toProcessedDiagram(labelMode = 2)
+    println(scale.labels)
+
 
 
 }
@@ -229,8 +226,8 @@ fun Int.getFactors():Int{
     return this and 16777215
 }
 
-fun Int.toFraction(other:Int = 1, period: Period = octave):Fraction{                                  //Integer to fraction converter can take divisor as an argument.
-    if ((this == 0) or (other == 0)) {return Fraction(0, 0)}        //for the purpose of tuning theory 0 is nonsensical as
+fun Int?.toFraction(other:Int = 1, period: Period = octave): Fraction {                                  //Integer to fraction converter can take divisor as an argument.
+    if (this == null || this == 0 || other == 0) {return Fraction(0, 0)}        //for the purpose of tuning theory 0 is nonsensical as
     var num = this                                                           //a numerator or as a divisor so either option is sent 0/0.
     var div = other                                //numerator and divisor are initialised from input, these are variables as they will
     if (period == octave) {
@@ -256,7 +253,7 @@ fun Int.toFraction(other:Int = 1, period: Period = octave):Fraction{            
     return Fraction(num, div, period)                       //Simplest form of Fraction returned.
 }
 
-val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31)                      //current list of primes and factors needed in the CPS that the
+val primes = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97)                      //current list of primes and factors needed in the CPS that the
                                                                               //functions produce. could be expanded for higher prime limit.
 
 val octave = Period (2, 1, listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27))
@@ -267,11 +264,12 @@ val pentave = Period (5, 1, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 1
 val tenth = Period (5, 2, listOf(1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18))
 val sixth = Period (5, 3, listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))
 val periods = listOf(octave, tritave, doubleOctave, pentave, fifth, tenth, sixth)
-val primeFactorScale = Scale(primes.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
+val fracs = (1..101 step 2).map { it.toFraction(1, octave) }
+val primeFactorScale = Scale(primes.slice(0 until 11).map{it.toFraction(1, octave)}, octave).toFactorScale(11)
 val noThreeList = listOf(2, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27)
-val noThreeFactors = Scale(noThreeList.map{it.toFraction(1, octave)}, octave).toFactorScale(11)
-val noOneFactors = Scale(mapOf(9 to 3, 5 to 3, 7 to 3, 10 to 8, 11 to 3, 13 to 3).map{it.key.toFraction(it.value)}).toFactorScale(11)
-val inc9FactorScale = Scale(listOf(3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27).map{it.toFraction(1, octave)}).toFactorScale(11)
+val noThreeFactors = Scale(noThreeList.map { it.toFraction(1, octave) }, octave).toFactorScale(11)
+val noOneFactors = Scale(mapOf(9 to 3, 5 to 3, 7 to 3, 10 to 8, 11 to 3, 13 to 3).map { it.key.toFraction(it.value) }).toFactorScale(11)
+val inc9FactorScale = Scale(listOf(3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 27).map { it.toFraction(1, octave) }).toFactorScale(11)
 val wilsonXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 43, 11 to -48, 13 to -9),
         mapOf(2 to 0, 3 to 0, 5 to 216, 7 to 34, 11 to 45, 13 to 26), octave)
 val gradyXYMap = XYMap(mapOf(2 to 0, 3 to 216, 5 to 0, 7 to 66, 11 to -71, 13 to -42),
@@ -287,7 +285,8 @@ val penta2XYMap = XYMap(mapOf(2 to 0, 3 to -174, 5 to 0, 7 to 174, 11 to 108, 13
 val edgeWeights = doubleArrayOf(0.0, 1.75, 2.0, 2.5, 3.0, 3.25, 3.75, 4.0, 4.5, 5.0, 5.25)
 val pentaFact = Scale(listOf(3.toFraction(1), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 11.toFraction(1))).toFactorScale()
 val pentaFactb = Scale(listOf(13.toFraction(1), 13.toFraction(3), 13.toFraction(5), 13.toFraction(7), 13.toFraction(11))).toFactorScale()
-val penta2Fact = Scale(listOf(13.toFraction(3), 5.toFraction(3), 7.toFraction(5), 11.toFraction(7), 13.toFraction(11))).toFactorScale()
+val penta2Fact = Scale(listOf(13.toFraction(3), 11.toFraction(3), 7.toFraction(3), 13.toFraction(5),
+        11.toFraction(5),7.toFraction(5), 13.toFraction(7), 11.toFraction(7), 13.toFraction(11))).toFactorScale()
 val penta2Factb = Scale(listOf(3.toFraction(1), 5.toFraction(1), 7.toFraction(1), 11.toFraction(1), 13.toFraction(1))).toFactorScale()
 val greek: Map<Int, String> = mapOf(1 to "Mono", 2 to "Die", 3 to "Tria", 4 to "Tetra", 5 to "Penta",
         6 to "Hexa", 7 to "Hepta", 8 to "Okta", 9 to "Ennea", 10 to "Deka", 11 to "Hendexa", 12 to "Dodeka",

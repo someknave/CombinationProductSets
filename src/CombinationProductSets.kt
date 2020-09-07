@@ -144,6 +144,9 @@ class Fraction(var num:Int = 1, var div:Int = 1, val period: Period = octave) {
     fun toFloat():Float{
         return num.toFloat()/div
     }
+    fun toDouble():Double{
+        return num.toDouble()/div
+    }
     operator fun times(other: Any?): Fraction {
         if (other is Int) {
             return (other * num).toFraction(div, period)
@@ -348,6 +351,47 @@ class FactorScale(val notes:List<FactorNote>) {
         } else {shortTours(map, intervals, tours -1, lines.plus(tour))
                 .plus(stucture)}
     }
+    fun toDiagramLabels(labelMode: Int = 2): List<Pair<String, String>> {
+        val output = mutableListOf<Pair<String, String>>()
+        val factorsize = this.notes[0].factors.size
+        val degree = labelMode / 2
+        for (note in this.notes) {
+            var numerator = "1"
+            var divisor = "1"
+            var numCount = 1
+            var divCount = 1
+            for (i in 1 until factorsize) {
+                when {
+                    note.factors[i] > 0 -> { numerator += ".${primes[i].exp(note.factors[i])}"; numCount++}
+                    note.factors[i] < 0 -> { divisor += ".${primes[i].exp(-note.factors[i])}"; divCount++}
+                }
+            }
+            if (degree>0) {
+                if (numCount > degree + divCount) {
+                    numerator = numerator.drop(2)
+                }
+                if (divCount > 1) {
+                    divisor = divisor.drop(2)
+                }
+            } else if (degree < 0) {
+                if (divCount > numCount - degree) {
+                    divisor = divisor.drop(2)
+                }
+                if (numCount > 1) {
+                    numerator = numerator.drop(2)
+                }
+            } else {
+                if (divCount > 1) {
+                    divisor = divisor.drop(2)
+                }
+                if (numCount > 1) {
+                    numerator = numerator.drop(2)
+                }
+            }
+            output.add(numerator to divisor)
+        }
+        return output
+    }
 }
 
 class IntervalMap(val interval: FactorNote, val map: Map<FactorNote, FactorNote>) {
@@ -368,21 +412,21 @@ class ScaleStructure(val scale: FactorScale, val maps:List<IntervalMap>) {
 }
 
 class Period(val num: Int, val div: Int, val factors: List<Int>) {
-    fun toFloat():Float{
-        return num.toFloat()/div
-    }
-
-    override fun toString(): String {
-        return "($num/$div): $factors"
-    }
-
+    fun toFloat() = num.toFloat()/div
+    fun toDouble() = num.toDouble()/div
+    override fun toString() = "($num/$div): $factors"
 }
 class XYMap(val mapX: Map<Int, Int>, val mapY: Map<Int, Int>,val period: Period = octave) {
     override fun toString(): String {
         return "Period:$period, xMap:$mapX, yMap$mapY"
     }
-
 }
+class XYFacMap(val mapX: Map<FactorNote, Int>, val mapY: Map<FactorNote, Int>,val period: Period = octave) {
+    override fun toString(): String {
+        return "Period:$period, xMap:$mapX, yMap$mapY"
+    }
+}
+
 class XYCoordinates(val x: Int, val y:Int){
     override fun toString(): String {
         return "($x,$y)"
@@ -489,9 +533,10 @@ class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
                   val pointWidth:Int, val lineWidth:Float,
                   val highlights: List<Highlight> = emptyList()) {
     fun toProcessedDiagram(lMargin: Int = 100, uMargin: Int = lMargin,
-                           rMargin: Int = lMargin, dMargin:Int = uMargin,
-                           xLen:Int = 400, yLen:Int = 300,
-                           byLength:Boolean = false):ProcessedDiagram {
+                           rMargin: Int = lMargin, dMargin: Int = uMargin,
+                           xLen: Int = 400, yLen: Int = 300,
+                           byLength: Boolean = false, labelMode: Int = 0,
+                           xLabelOffset: Int = 10, yLabelOffset: Int = 5 ): ProcessedDiagram {
         val printable = listOf(structure)
                 .union(highlights.filter { it.ghost }
                         .map { it.structure }).toList()
@@ -519,10 +564,16 @@ class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
             val height = uMargin + dMargin + ySpan
             CanvasSize(width, height, lMargin, uMargin)
         }
+
         val rShift = canv.lGap - xmin
         val dShift = canv.uGap + ySpan +ymin
         val dpoints = mutableListOf<DiagramPoint>()
         val dlines = mutableListOf<DiagramLine>()
+        val labelpoints = mutableListOf<XYCoordinates>()
+        for (point in structure.points) {
+            labelpoints.add(XYCoordinates(point.x + rShift, dShift - point.y ))
+
+        }
         for (point in points){
             if (point in structure.points) {
                 val outProperties = point.getProperties(this, true)
@@ -565,9 +616,14 @@ class RawDiagram (val structure: XYStructure, val colour: Color = BLACK,
                         80.shl(24), true), outProperties.priority))
             }
         }
-        return ProcessedDiagram(canv.width, canv.height,
-                dlines.sortedBy { it.priority },
-                dpoints.sortedBy { it.priority })
+        return if(labelMode == 0) {
+            ProcessedDiagram(canv.width, canv.height, dlines.sortedBy { it.priority },
+                    dpoints.sortedBy { it.priority })
+        } else {
+            ProcessedDiagram(canv.width, canv.height, dlines.sortedBy { it.priority },
+                    dpoints.sortedBy { it.priority }, labelMode,
+                    structure.structure.scale.toDiagramLabels(labelMode), labelpoints, xLabelOffset, yLabelOffset)
+        }
     }
 }
 
@@ -587,7 +643,10 @@ class DiagramPoint (val x:Int, val y:Int, val width:Int = 6,
 
 }
 class ProcessedDiagram (val x:Int, val y:Int, val lines: List<DiagramLine>,
-                        val points: List<DiagramPoint>){
+                        val points: List<DiagramPoint>, val labelMode: Int = 0,
+                        val labels: List<Pair<String, String>> = emptyList(),
+                        val labelpoints: List<XYCoordinates> = emptyList(),
+                        val xOffset: Int = 0, val yOffset: Int = 0){
     override fun toString(): String {
         return "($x, $y) $points\n$lines\n"
     }
